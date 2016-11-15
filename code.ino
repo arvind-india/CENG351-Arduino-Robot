@@ -31,17 +31,17 @@ void setup() {
 
 void loop() {
 //  motor_selftest();
-
+  
 /* hit detection test */
 //  if (hit_detect(LEFT_WHISKER)) {
-//    motor_speed(LEFT_MOTOR,-255);
+//    motor_speed(LEFT_MOTOR,-100);
 //    delay(400);
-//    motor_speed(LEFT_MOTOR,255);
+//    motor_speed(LEFT_MOTOR,100);
 //  }
 //  if (hit_detect(RIGHT_WHISKER)) {
-//    motor_speed(RIGHT_MOTOR,-255);
+//    motor_speed(RIGHT_MOTOR,-100);
 //    delay(400);
-//    motor_speed(RIGHT_MOTOR,255);
+//    motor_speed(RIGHT_MOTOR,100);
 //  }
 
 /* debug code for the line followers */
@@ -55,16 +55,82 @@ void loop() {
 
 
 /* Report the light level of each linesensor's state */
-  if (line_check(LEFT_LINESENSOR) == WHITE)
-    Serial.print("white  ");
-  else Serial.print("black  ");
-  if (line_check(CENTER_LINESENSOR) == WHITE)
-    Serial.print("white  ");
-  else Serial.print("black  ");
-  if (line_check(RIGHT_LINESENSOR) == WHITE)
-    Serial.print("white  ");
-  else Serial.print("black  ");
+//  if (line_check(LEFT_LINESENSOR) == WHITE)
+//    Serial.print("white  ");
+//  else Serial.print("black  ");
+//  if (line_check(CENTER_LINESENSOR) == WHITE)
+//    Serial.print("white  ");
+//  else Serial.print("black  ");
+//  if (line_check(RIGHT_LINESENSOR) == WHITE)
+//    Serial.print("white  ");
+//  else Serial.print("black  ");
+//
+//  Serial.print("\n");
+//  delay(500);
+
+
+  follow_line();
+  motor_speed(LEFT_MOTOR, -80);
+  motor_speed(RIGHT_MOTOR, 80);
+  delay(666);
+  motor_speed(LEFT_MOTOR, 0);
+  motor_speed(RIGHT_MOTOR, 0);
+  delay(6000);
+}
+
+
+void follow_line()
+{
+  bool on_track = true;
+
+  Serial.println("following line!");
   
-  Serial.print("\n");
-  delay(500);
+  // motor speed as a percent, -100 is full reverse
+  left_speed = 100;
+  right_speed = 100;
+  
+  while (on_track)
+  {
+    if (hit_detect(LEFT_WHISKER) || hit_detect(RIGHT_WHISKER))
+    {
+      motor_speed(LEFT_MOTOR, -100);
+      motor_speed(RIGHT_MOTOR, -100);
+      Serial.println("WE HIT A WALL");
+      delay(1000);
+      on_track = false;
+      motor_speed(LEFT_MOTOR, 0);
+      motor_speed(RIGHT_MOTOR, 0);
+      delay(5000);
+    }
+    
+    if (line_check(LEFT_LINESENSOR) == BLACK &&
+        line_check(RIGHT_LINESENSOR) == BLACK)
+    {
+      Serial.println("Intersection.");
+      left_speed = 0;
+      right_speed = 0;
+      on_track = false;
+    }
+    else if (line_check(LEFT_LINESENSOR) == BLACK)
+    {
+      Serial.println("steering left");
+      left_speed -= 5;
+    }
+    else if (line_check(RIGHT_LINESENSOR) == BLACK)
+    {
+      Serial.println("steering right");
+      right_speed -= 5;
+    }
+    else if (line_check(CENTER_LINESENSOR) == BLACK)
+    {
+      Serial.println("found middle");
+      left_speed = 100;
+      right_speed = 100;
+    }
+    
+
+    motor_speed(LEFT_MOTOR, left_speed);
+    motor_speed(RIGHT_MOTOR, right_speed);
+    delay(50);
+  }
 }
