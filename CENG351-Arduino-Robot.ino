@@ -15,8 +15,8 @@
 
 #define SFRONT_TRIG 1
 #define SFRONT_ECHO 2
-#define SSIDE_TRIG 3
-#define SSIDE_ECHO 4
+#define SSIDE_TRIG 4
+#define SSIDE_ECHO 3
 
 
 // Custom-written "libraries" for interacting with the robot.

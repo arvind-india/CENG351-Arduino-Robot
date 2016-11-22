@@ -7,11 +7,11 @@
 #endif
 
 #ifndef SSIDE_TRIG
-#define SSIDE_TRIG 3
+#define SSIDE_TRIG 4
 #endif
 
 #ifndef SSIDE_ECHO
-#define SSIDE_ECHO 4
+#define SSIDE_ECHO 3
 #endif
 
 void sonar_setup() {
@@ -24,20 +24,21 @@ void sonar_setup() {
 double distance_cm(int trigpin, int echopin) {
   long duration;
   digitalWrite(trigpin, LOW);
-  delayMicroseconds(2);
+  delayMicroseconds(5);
   digitalWrite(trigpin, HIGH);
   delayMicroseconds(10); // Added this line
   digitalWrite(trigpin, LOW);
-  duration = pulseIn(echopin, HIGH, 9001);
-  return (duration / 58.2);
+  delayMicroseconds(100);
+  duration = pulseIn(echopin, HIGH, 60000);
+  return (duration / 58.24);
 }
 
-int front_distance() {
-  return round(distance_cm(SFRONT_TRIG, SFRONT_ECHO));
+float front_distance() {
+  return distance_cm(SFRONT_TRIG, SFRONT_ECHO);
 }
 
-int side_distance() {
-  return round(distance_cm(SSIDE_TRIG, SSIDE_ECHO));
+float side_distance() {
+  return distance_cm(SSIDE_TRIG, SSIDE_ECHO);
 }
 
 void sonar_selftest() {
