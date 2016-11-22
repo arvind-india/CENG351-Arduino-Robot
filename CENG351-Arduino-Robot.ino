@@ -43,22 +43,22 @@ void loop() {
 
 void follow_wall() {
   int left_speed = 100, right_speed = 100;
-  int front_dist, side_dist;
+  float front_dist, side_dist;
   boolean going = true;
   
   while (going) {
     front_dist = front_distance();
     side_dist = side_distance();
-    if (front_dist < 10 && front_dist > 2) {
+    if (front_dist <= 15.0 && front_dist >= 2.0) {
       /* spin 90 degrees right */
       motor_speed(LEFT_MOTOR, 80);
       motor_speed(RIGHT_MOTOR, -100);
       Serial.print("ROTATING (front_dist = ");
       Serial.print(front_dist);
       Serial.print(")\n");
-      while (front_dist < 10 && front_dist > 2) {
+      while (front_dist <= 15.0 && front_dist >= 2.0) {
+         delay(100);
          front_dist = front_distance();
-         delay(500);
       }
       left_speed = 100; right_speed = 100;
     } else if (side_dist > 30 || side_dist < 5) {
@@ -79,7 +79,7 @@ void follow_wall() {
     }
     motor_speed(LEFT_MOTOR, left_speed);
     motor_speed(RIGHT_MOTOR, right_speed);
-    delay(10);
+    delay(100);
   }
 }
 

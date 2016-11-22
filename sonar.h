@@ -22,7 +22,7 @@ void sonar_setup() {
 }
 
 double distance_cm(int trigpin, int echopin) {
-  long duration;
+  long unsigned duration;
   digitalWrite(trigpin, LOW);
   delayMicroseconds(5);
   digitalWrite(trigpin, HIGH);
