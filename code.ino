@@ -13,6 +13,11 @@
 #define LINEFOLLOW_CENTER A0
 #define LINEFOLLOW_RIGHT A1
 
+#define SFRONT_TRIG 1
+#define SFRONT_ECHO 2
+#define SSIDE_TRIG 3
+#define SSIDE_ECHO 4
+
 
 // Custom-written "libraries" for interacting with the robot.
 // Call motor_speed() with a motor side and a speed (-255, 255)
@@ -21,66 +26,64 @@
 #include "motors.h"
 #include "linefollow.h"
 #include "whiskers.h"
+#include "sonar.h"
 
 void setup() {
-  whiskers_setup();
   motors_setup();
+  sonar_setup();
+  linefollower_setup();
 
   Serial.begin(9600);
 }
 
 void loop() {
-//  motor_selftest();
-  
-/* hit detection test */
-//  if (hit_detect(LEFT_WHISKER)) {
-//    motor_speed(LEFT_MOTOR,-100);
-//    delay(400);
-//    motor_speed(LEFT_MOTOR,100);
-//  }
-//  if (hit_detect(RIGHT_WHISKER)) {
-//    motor_speed(RIGHT_MOTOR,-100);
-//    delay(400);
-//    motor_speed(RIGHT_MOTOR,100);
-//  }
-
-/* debug code for the line followers */
-//  size_t i;
-//  i = Serial.print(line_check_raw(LEFT_LINESENSOR));
-//  while (i < 8) { Serial.print(" "); i--;}
-//  i = Serial.print(line_check_raw(CENTER_LINESENSOR));
-//  while (i < 8) { Serial.print(" "); i--;}
-//  Serial.print(line_check_raw(RIGHT_LINESENSOR));
-//  Serial.print("\n");
-
-
-/* Report the light level of each linesensor's state */
-//  if (line_check(LEFT_LINESENSOR) == WHITE)
-//    Serial.print("white  ");
-//  else Serial.print("black  ");
-//  if (line_check(CENTER_LINESENSOR) == WHITE)
-//    Serial.print("white  ");
-//  else Serial.print("black  ");
-//  if (line_check(RIGHT_LINESENSOR) == WHITE)
-//    Serial.print("white  ");
-//  else Serial.print("black  ");
-//
-//  Serial.print("\n");
-//  delay(500);
-
-
-  follow_line();
-  motor_speed(LEFT_MOTOR, -80);
-  motor_speed(RIGHT_MOTOR, 80);
-  delay(666);
-  motor_speed(LEFT_MOTOR, 0);
-  motor_speed(RIGHT_MOTOR, 0);
-  delay(6000);
+  //motor_selftest();
+  follow_wall();
 }
 
+void follow_wall() {
+  int left_speed = 100, right_speed = 100;
+  int front_dist, side_dist;
+  boolean going = true;
+  
+  while (going) {
+    front_dist = front_distance();
+    side_dist = side_distance();
+    if (front_dist < 10 && front_dist > 2) {
+      /* spin 90 degrees right */
+      motor_speed(LEFT_MOTOR, 80);
+      motor_speed(RIGHT_MOTOR, -100);
+      Serial.print("ROTATING (front_dist = ");
+      Serial.print(front_dist);
+      Serial.print(")\n");
+      while (front_dist < 10 && front_dist > 2) {
+         front_dist = front_distance();
+         delay(500);
+      }
+      left_speed = 100; right_speed = 100;
+    } else if (side_dist > 30 || side_dist < 5) {
+      if (left_speed > 60) left_speed -= 5;
+      Serial.print("SIDE IS OUT OF RANGE (side_dist = ");
+      Serial.print(side_dist);
+      Serial.print(")\n");
+    } else if (side_dist < 12) {
+      right_speed -= 5;
+      Serial.print("SIDE TOO CLOSE (side_dist = ");
+      Serial.print(side_dist);
+      Serial.print(")\n");
+    } else {
+      Serial.print("SIDE IN RANGE (side_dist = ");
+      Serial.print(side_dist);
+      Serial.print(")\n");
+      left_speed = 100; right_speed = 100;
+    }
+    motor_speed(LEFT_MOTOR, left_speed);
+    motor_speed(RIGHT_MOTOR, right_speed);
+    delay(10);
+  }
+}
 
-void follow_line()
-{
+void follow_line(){
   bool on_track = true;
 
   Serial.println("following line!");
@@ -89,45 +92,25 @@ void follow_line()
   left_speed = 100;
   right_speed = 100;
   
-  while (on_track)
-  {
-    if (hit_detect(LEFT_WHISKER) || hit_detect(RIGHT_WHISKER))
-    {
-      motor_speed(LEFT_MOTOR, -100);
-      motor_speed(RIGHT_MOTOR, -100);
-      Serial.println("WE HIT A WALL");
-      delay(1000);
-      on_track = false;
-      motor_speed(LEFT_MOTOR, 0);
-      motor_speed(RIGHT_MOTOR, 0);
-      delay(5000);
-    }
+  while (on_track) {
     
     if (line_check(LEFT_LINESENSOR) == BLACK &&
-        line_check(RIGHT_LINESENSOR) == BLACK)
-    {
+        line_check(RIGHT_LINESENSOR) == BLACK) {
       Serial.println("Intersection.");
       left_speed = 0;
       right_speed = 0;
       on_track = false;
-    }
-    else if (line_check(LEFT_LINESENSOR) == BLACK)
-    {
+    } else if (line_check(LEFT_LINESENSOR) == BLACK) {
       Serial.println("steering left");
       left_speed -= 5;
-    }
-    else if (line_check(RIGHT_LINESENSOR) == BLACK)
-    {
+    } else if (line_check(RIGHT_LINESENSOR) == BLACK) {
       Serial.println("steering right");
       right_speed -= 5;
-    }
-    else if (line_check(CENTER_LINESENSOR) == BLACK)
-    {
+    } else if (line_check(CENTER_LINESENSOR) == BLACK) {
       Serial.println("found middle");
       left_speed = 100;
       right_speed = 100;
     }
-    
 
     motor_speed(LEFT_MOTOR, left_speed);
     motor_speed(RIGHT_MOTOR, right_speed);

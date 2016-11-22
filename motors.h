@@ -141,17 +141,17 @@ void motor_selftest() {
   for (int motor = 0; motor <= 1; motor++) { 
     for (int i = 0; i <= 100; i++) {
       motor_speed(motors[motor], i);
-      delay(100);
+      delay(10);
       Serial.print(i); Serial.print(" ...\n");
     }
     for (int i = 100; i >= -100; i--) {
       motor_speed(motors[motor], i);
-      delay(100);
+      delay(10);
       Serial.print(i); Serial.print(" ...\n");
     }
     for (int i = -100; i <= 0; i++) {
       motor_speed(motors[motor], i);
-      delay(100);
+      delay(10);
       Serial.print(i); Serial.print(" ...\n");
     }
     delay(1000);
