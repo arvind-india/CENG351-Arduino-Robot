@@ -100,6 +100,20 @@ void follow_line(){
       left_speed = 0;
       right_speed = 0;
       on_track = false;
+
+  //Case L (we will always turn left after completing the 2nd stage, this way we can ensure we know exactly which direction we are facing)
+  //The bot should turn left 90 degrees here and continue with follow_line()
+  //Once the frontSensor == close stop following the line
+  //Use the reedSwitch to check if the block is the magnet
+  
+  //If it is the magnet
+      //the bot should pick it up
+      //turn 180 degrees and drive until the rightLineSensor == black
+  //If it is NOT the magnet
+      //the bot should turn 180 degrees
+      //continue follow_line()
+      //drive until frontSensor == close
+   
     } else if (line_check(LEFT_LINESENSOR) == BLACK) {
       Serial.println("steering left");
       left_speed -= 5;
