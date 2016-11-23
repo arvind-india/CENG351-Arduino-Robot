@@ -13,7 +13,7 @@
 #define LINEFOLLOW_CENTER A0
 #define LINEFOLLOW_RIGHT A1
 
-#define SFRONT_TRIG 1
+#define SFRONT_TRIG 13
 #define SFRONT_ECHO 2
 #define SSIDE_TRIG 4
 #define SSIDE_ECHO 3
@@ -25,7 +25,6 @@
 // and 0 is stop.
 #include "motors.h"
 #include "linefollow.h"
-#include "whiskers.h"
 #include "sonar.h"
 
 void setup() {
@@ -39,15 +38,17 @@ void setup() {
 void loop() {
   //motor_selftest();
   follow_wall();
+  //sonar_selftest();
 }
 
 void follow_wall() {
   int left_speed = 100, right_speed = 100;
-  float front_dist, side_dist;
+  static double front_dist, side_dist;
   boolean going = true;
   
   while (going) {
     front_dist = front_distance();
+    delay(50);
     side_dist = side_distance();
     if (front_dist <= 15.0 && front_dist >= 2.0) {
       /* spin 90 degrees right */
@@ -63,23 +64,23 @@ void follow_wall() {
       left_speed = 100; right_speed = 100;
     } else if (side_dist > 30 || side_dist < 5) {
       if (left_speed > 60) left_speed -= 5;
-      Serial.print("SIDE IS OUT OF RANGE (side_dist = ");
-      Serial.print(side_dist);
-      Serial.print(")\n");
+      Serial.print("SIDE IS OUT OF RANGE ");
     } else if (side_dist < 12) {
       right_speed -= 5;
-      Serial.print("SIDE TOO CLOSE (side_dist = ");
-      Serial.print(side_dist);
-      Serial.print(")\n");
+      Serial.print("SIDE TOO CLOSE ");
     } else {
-      Serial.print("SIDE IN RANGE (side_dist = ");
-      Serial.print(side_dist);
-      Serial.print(")\n");
+      Serial.print("SIDE IN RANGE ");
       left_speed = 100; right_speed = 100;
     }
+
+    Serial.print("(side_dist = ");
+    Serial.print(side_dist);
+    Serial.print("cm, front_dist = ");
+    Serial.print(front_dist);
+    Serial.print("cm)\n");
     motor_speed(LEFT_MOTOR, left_speed);
     motor_speed(RIGHT_MOTOR, right_speed);
-    delay(100);
+    delay(50);
   }
 }
 

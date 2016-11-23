@@ -26,18 +26,20 @@ double distance_cm(int trigpin, int echopin) {
   digitalWrite(trigpin, LOW);
   delayMicroseconds(5);
   digitalWrite(trigpin, HIGH);
-  delayMicroseconds(10); // Added this line
+  delayMicroseconds(10);
   digitalWrite(trigpin, LOW);
   delayMicroseconds(100);
   duration = pulseIn(echopin, HIGH, 60000);
+  if (duration > 0) /* give 60ms for a read */
+    delayMicroseconds(60000 - duration);
   return (duration / 58.24);
 }
 
-float front_distance() {
+double front_distance() {
   return distance_cm(SFRONT_TRIG, SFRONT_ECHO);
 }
 
-float side_distance() {
+double side_distance() {
   return distance_cm(SSIDE_TRIG, SSIDE_ECHO);
 }
 
