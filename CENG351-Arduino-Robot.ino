@@ -8,9 +8,6 @@
 #define RIGHT_MOTOR_1A 10
 #define RIGHT_MOTOR_2A 9
 
-#define LEFT_WHISKER 12
-#define RIGHT_WHISKER 13
-
 #define LINEFOLLOW_LEFT A2
 #define LINEFOLLOW_CENTER A0
 #define LINEFOLLOW_RIGHT A1
@@ -20,6 +17,8 @@
 #define SSIDE_TRIG 4
 #define SSIDE_ECHO 3
 
+#define REED_SW_PIN 11
+
 
 // Custom-written "libraries" for interacting with the robot.
 // Call motor_speed() with a motor side and a speed (-255, 255)
@@ -28,11 +27,13 @@
 #include "motors.h"
 #include "linefollow.h"
 #include "sonar.h"
+#include "reed.h"
 
 void setup() {
   motors_setup();
   sonar_setup();
   linefollower_setup();
+  reed_setup();
 
   Serial.begin(9600);
 }
