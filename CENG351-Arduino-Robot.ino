@@ -1,3 +1,5 @@
+#include "Arduino.h"
+
 /* Pin Assignments */
 #define LEFT_MOTOR_3A4A 6
 #define LEFT_MOTOR_3A 8
@@ -42,7 +44,8 @@ void loop() {
 }
 
 void follow_wall() {
-  const int MAX_SPEED = 100;
+  const int MAX_SPEED = 80;
+  const int INCREMENT = 3;
   int left_speed = MAX_SPEED, right_speed = MAX_SPEED;
   const size_t avg_size = 2;
   double front_dist[avg_size], side_dist[avg_size];
@@ -81,18 +84,18 @@ void follow_wall() {
       left_speed = MAX_SPEED; right_speed = MAX_SPEED;
 
     /* detect if the wall is too far away */
-    } else if (avg_side_dist > 11 || 
+    } else if (avg_side_dist > 10 || 
                avg_side_dist < 1) {
       right_speed = MAX_SPEED;
       // but don't let the left motor slow down too much
-      if (left_speed > (MAX_SPEED * 2 / 5)) left_speed -= 5;
+      if (left_speed > (MAX_SPEED * 2 / 5)) left_speed -= INCREMENT;
       Serial.print("SIDE IS OUT OF RANGE ");
       
     /* detect if the wall is too close */
-    } else if (avg_side_dist < 7) {
+    } else if (avg_side_dist < 8) {
       left_speed = MAX_SPEED;
       // but don't let the other motor slow down too much
-      if (right_speed > (MAX_SPEED * 2 / 5)) right_speed -= 5;
+      if (right_speed > (MAX_SPEED * 2 / 5)) right_speed -= INCREMENT;
       Serial.print("SIDE TOO CLOSE       ");
       
     /* detect that we are in the ideal range */
@@ -108,7 +111,7 @@ void follow_wall() {
     Serial.print("cm)\n");
     motor_speed(LEFT_MOTOR, left_speed);
     motor_speed(RIGHT_MOTOR, right_speed);
-    delay(50);
+    delay(100);
   }
 }
 
