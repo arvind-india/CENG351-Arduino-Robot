@@ -13,7 +13,7 @@
 #define LINEFOLLOW_CENTER A0
 #define LINEFOLLOW_RIGHT A1
 
-#define SFRONT_TRIG 1
+#define SFRONT_TRIG 13
 #define SFRONT_ECHO 2
 #define SSIDE_TRIG 4
 #define SSIDE_ECHO 3
@@ -25,8 +25,12 @@
 // and 0 is stop.
 #include "motors.h"
 #include "linefollow.h"
-#include "whiskers.h"
 #include "sonar.h"
+
+bool reed_switch () {
+return true;
+//should return true if the magnet is sensed
+}
 
 void setup() {
   motors_setup();
@@ -39,69 +43,93 @@ void setup() {
 void loop() {
   //motor_selftest();
   follow_wall();
+  //sonar_selftest();
 }
 
 void follow_wall() {
-  int left_speed = 100, right_speed = 100;
-  float front_dist, side_dist;
+  const int MAX_SPEED = 100;
+  int left_speed = MAX_SPEED, right_speed = MAX_SPEED;
+  const size_t avg_size = 2;
+  double front_dist[avg_size], side_dist[avg_size];
+  double avg_front_dist, avg_side_dist;
+  size_t i = 0;
   boolean going = true;
+
+  // initialize the rolling averages
+  for (double dist = front_distance(); i < avg_size; i++)
+    front_dist[i] = dist;
+  avg_front_dist = front_dist[0];
+  i = 0;
+  for (double dist = side_distance(); i < avg_size; i++)
+    side_dist[i] = dist;
+  avg_side_dist = side_dist[0];
   
   while (going) {
-    front_dist = front_distance();
-    side_dist = side_distance();
-    if (front_dist <= 15.0 && front_dist >= 2.0) {
+    /* generate the rolling average distances */
+    front_dist[i] = front_distance();
+    side_dist[i] = side_distance();
+    i = (i+1) % avg_size;
+    for (size_t i = 0; i < avg_size; i++)
+      avg_front_dist=(i==0?front_dist[i]:avg_front_dist+front_dist[i]);
+    avg_front_dist /= (double) avg_size;  
+    for (size_t i = 0; i < avg_size; i++)
+      avg_side_dist=(i==0?side_dist[i]:avg_side_dist+side_dist[i]);
+    avg_side_dist /= (double) avg_size;
+
+    /* detect wall in front */
+    if (avg_front_dist < 15 && avg_front_dist > 0) {
       /* spin 90 degrees right */
-      motor_speed(LEFT_MOTOR, 80);
-      motor_speed(RIGHT_MOTOR, -100);
-      Serial.print("ROTATING (front_dist = ");
-      Serial.print(front_dist);
-      Serial.print(")\n");
-      while (front_dist <= 15.0 && front_dist >= 2.0) {
-         delay(100);
-         front_dist = front_distance();
-      }
-      left_speed = 100; right_speed = 100;
-    } else if (side_dist > 30 || side_dist < 5) {
-      if (left_speed > 60) left_speed -= 5;
-      Serial.print("SIDE IS OUT OF RANGE (side_dist = ");
-      Serial.print(side_dist);
-      Serial.print(")\n");
-    } else if (side_dist < 12) {
-      right_speed -= 5;
-      Serial.print("SIDE TOO CLOSE (side_dist = ");
-      Serial.print(side_dist);
-      Serial.print(")\n");
+      motor_speed(LEFT_MOTOR, MAX_SPEED * 3 / 5 );
+      motor_speed(RIGHT_MOTOR, -1 * MAX_SPEED );
+      Serial.print("ROTATING             ");
+      delay(300);
+      left_speed = MAX_SPEED; right_speed = MAX_SPEED;
+
+    /* detect if the wall is too far away */
+    } else if (avg_side_dist > 11 || 
+               avg_side_dist < 1) {
+      right_speed = MAX_SPEED;
+      // but don't let the left motor slow down too much
+      if (left_speed > (MAX_SPEED * 2 / 5)) left_speed -= 5;
+      Serial.print("SIDE IS OUT OF RANGE ");
+      
+    /* detect if the wall is too close */
+    } else if (avg_side_dist < 7) {
+      left_speed = MAX_SPEED;
+      // but don't let the other motor slow down too much
+      if (right_speed > (MAX_SPEED * 2 / 5)) right_speed -= 5;
+      Serial.print("SIDE TOO CLOSE       ");
+      
+    /* detect that we are in the ideal range */
     } else {
-      Serial.print("SIDE IN RANGE (side_dist = ");
-      Serial.print(side_dist);
-      Serial.print(")\n");
-      left_speed = 100; right_speed = 100;
+      Serial.print("SIDE IN RANGE        ");
+      left_speed = MAX_SPEED; right_speed = MAX_SPEED;
     }
+
+    Serial.print("(side_dist = ");
+    Serial.print(avg_side_dist);
+    Serial.print("cm, front_dist = ");
+    Serial.print(avg_front_dist);
+    Serial.print("cm)\n");
     motor_speed(LEFT_MOTOR, left_speed);
     motor_speed(RIGHT_MOTOR, right_speed);
-    delay(100);
+    delay(50);
   }
 }
 
 void follow_line(){
   bool on_track = true;
+  bool magnet = false; 
+  int bot_dir = 1; 
+    // bot_dir  0 = left, 1 = right
 
   Serial.println("following line!");
   
   // motor speed as a percent, -100 is full reverse
   left_speed = 100;
   right_speed = 100;
-  
-  while (on_track) {
-    
-    if (line_check(LEFT_LINESENSOR) == BLACK &&
-        line_check(RIGHT_LINESENSOR) == BLACK) {
-      Serial.println("Intersection.");
-      left_speed = 0;
-      right_speed = 0;
-      on_track = false;
-
-  //Case L (we will always turn left after completing the 2nd stage, this way we can ensure we know exactly which direction we are facing)
+ 
+    //Case L (we will always turn left after completing the 2nd stage, this way we can ensure we know exactly which direction we are facing)
   //The bot should turn left 90 degrees here and continue with follow_line()
   //Once the frontSensor == close stop following the line
   //Use the reedSwitch to check if the block is the magnet
@@ -113,7 +141,18 @@ void follow_line(){
       //the bot should turn 180 degrees
       //continue follow_line()
       //drive until frontSensor == close
-   
+  while (!magnet) {     
+  
+  while (on_track) {
+    
+    if (line_check(LEFT_LINESENSOR) == BLACK &&
+        line_check(RIGHT_LINESENSOR) == BLACK) {
+      Serial.println("Intersection.");
+      left_speed = 0;
+      right_speed = 0;
+      on_track = false;
+
+
     } else if (line_check(LEFT_LINESENSOR) == BLACK) {
       Serial.println("steering left");
       left_speed -= 5;
@@ -124,10 +163,28 @@ void follow_line(){
       Serial.println("found middle");
       left_speed = 100;
       right_speed = 100;
-    }
-
+  
     motor_speed(LEFT_MOTOR, left_speed);
     motor_speed(RIGHT_MOTOR, right_speed);
     delay(50);
   }
 }
+//when on_track == false we need to turn [LEFT] then continue line following
+//code to turn left below - check if it actually turns 90 deg
+motor_speed(LEFT_MOTOR, -100);
+motor_speed(RIGHT_MOTOR, 100);
+
+//check the reed_switch function
+magnet = reed_switch();
+delay (250);
+
+}
+}
+
+
+
+
+
+
+
+
