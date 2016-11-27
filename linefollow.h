@@ -54,3 +54,4 @@ int line_check_raw(linesensor_t sens) {
 lightlevel_t line_check(linesensor_t sens) {
 	return line_check_raw(sens) < 800 ? WHITE : BLACK;
 }
+
