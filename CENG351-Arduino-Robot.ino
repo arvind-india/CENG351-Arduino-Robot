@@ -42,41 +42,69 @@ void loop() {
 }
 
 void follow_wall() {
-  int left_speed = 100, right_speed = 100;
-  static double front_dist, side_dist;
+  const int MAX_SPEED = 100;
+  int left_speed = MAX_SPEED, right_speed = MAX_SPEED;
+  const size_t avg_size = 2;
+  double front_dist[avg_size], side_dist[avg_size];
+  double avg_front_dist, avg_side_dist;
+  size_t i = 0;
   boolean going = true;
+
+  // initialize the rolling averages
+  for (double dist = front_distance(); i < avg_size; i++)
+    front_dist[i] = dist;
+  avg_front_dist = front_dist[0];
+  i = 0;
+  for (double dist = side_distance(); i < avg_size; i++)
+    side_dist[i] = dist;
+  avg_side_dist = side_dist[0];
   
   while (going) {
-    front_dist = front_distance();
-    delay(50);
-    side_dist = side_distance();
-    if (front_dist <= 15.0 && front_dist >= 2.0) {
+    /* generate the rolling average distances */
+    front_dist[i] = front_distance();
+    side_dist[i] = side_distance();
+    i = (i+1) % avg_size;
+    for (size_t i = 0; i < avg_size; i++)
+      avg_front_dist=(i==0?front_dist[i]:avg_front_dist+front_dist[i]);
+    avg_front_dist /= (double) avg_size;  
+    for (size_t i = 0; i < avg_size; i++)
+      avg_side_dist=(i==0?side_dist[i]:avg_side_dist+side_dist[i]);
+    avg_side_dist /= (double) avg_size;
+
+    /* detect wall in front */
+    if (avg_front_dist < 15 && avg_front_dist > 0) {
       /* spin 90 degrees right */
-      motor_speed(LEFT_MOTOR, 80);
-      motor_speed(RIGHT_MOTOR, -100);
-      Serial.print("ROTATING (front_dist = ");
-      Serial.print(front_dist);
-      Serial.print(")\n");
-      while (front_dist <= 15.0 && front_dist >= 2.0) {
-         delay(100);
-         front_dist = front_distance();
-      }
-      left_speed = 100; right_speed = 100;
-    } else if (side_dist > 30 || side_dist < 5) {
-      if (left_speed > 60) left_speed -= 5;
+      motor_speed(LEFT_MOTOR, MAX_SPEED * 3 / 5 );
+      motor_speed(RIGHT_MOTOR, -1 * MAX_SPEED );
+      Serial.print("ROTATING             ");
+      delay(300);
+      left_speed = MAX_SPEED; right_speed = MAX_SPEED;
+
+    /* detect if the wall is too far away */
+    } else if (avg_side_dist > 11 || 
+               avg_side_dist < 1) {
+      right_speed = MAX_SPEED;
+      // but don't let the left motor slow down too much
+      if (left_speed > (MAX_SPEED * 2 / 5)) left_speed -= 5;
       Serial.print("SIDE IS OUT OF RANGE ");
-    } else if (side_dist < 12) {
-      right_speed -= 5;
-      Serial.print("SIDE TOO CLOSE ");
+      
+    /* detect if the wall is too close */
+    } else if (avg_side_dist < 7) {
+      left_speed = MAX_SPEED;
+      // but don't let the other motor slow down too much
+      if (right_speed > (MAX_SPEED * 2 / 5)) right_speed -= 5;
+      Serial.print("SIDE TOO CLOSE       ");
+      
+    /* detect that we are in the ideal range */
     } else {
-      Serial.print("SIDE IN RANGE ");
-      left_speed = 100; right_speed = 100;
+      Serial.print("SIDE IN RANGE        ");
+      left_speed = MAX_SPEED; right_speed = MAX_SPEED;
     }
 
     Serial.print("(side_dist = ");
-    Serial.print(side_dist);
+    Serial.print(avg_side_dist);
     Serial.print("cm, front_dist = ");
-    Serial.print(front_dist);
+    Serial.print(avg_front_dist);
     Serial.print("cm)\n");
     motor_speed(LEFT_MOTOR, left_speed);
     motor_speed(RIGHT_MOTOR, right_speed);
