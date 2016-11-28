@@ -8,9 +8,6 @@
 #define RIGHT_MOTOR_1A 10
 #define RIGHT_MOTOR_2A 9
 
-#define LEFT_WHISKER 12
-#define RIGHT_WHISKER 13
-
 #define LINEFOLLOW_LEFT A2
 #define LINEFOLLOW_CENTER A0
 #define LINEFOLLOW_RIGHT A1
@@ -20,6 +17,8 @@
 #define SSIDE_TRIG 4
 #define SSIDE_ECHO 3
 
+#define REED_SW_PIN 11
+
 
 // Custom-written "libraries" for interacting with the robot.
 // Call motor_speed() with a motor side and a speed (-255, 255)
@@ -28,11 +27,14 @@
 #include "motors.h"
 #include "linefollow.h"
 #include "sonar.h"
+#include "reed.h"
+
 
 void setup() {
   motors_setup();
   sonar_setup();
   linefollower_setup();
+  reed_setup();
 
   Serial.begin(9600);
 }
@@ -111,29 +113,23 @@ void follow_wall() {
     Serial.print("cm)\n");
     motor_speed(LEFT_MOTOR, left_speed);
     motor_speed(RIGHT_MOTOR, right_speed);
-    delay(100);
+    delay(50);
   }
 }
 
 void follow_line(){
   bool on_track = true;
+  bool magnet = false; 
+  int bot_dir = 1; 
+    // bot_dir  0 = left, 1 = right
 
   Serial.println("following line!");
   
   // motor speed as a percent, -100 is full reverse
   left_speed = 100;
   right_speed = 100;
-  
-  while (on_track) {
-    
-    if (line_check(LEFT_LINESENSOR) == BLACK &&
-        line_check(RIGHT_LINESENSOR) == BLACK) {
-      Serial.println("Intersection.");
-      left_speed = 0;
-      right_speed = 0;
-      on_track = false;
-
-  //Case L (we will always turn left after completing the 2nd stage, this way we can ensure we know exactly which direction we are facing)
+ 
+    //Case L (we will always turn left after completing the 2nd stage, this way we can ensure we know exactly which direction we are facing)
   //The bot should turn left 90 degrees here and continue with follow_line()
   //Once the frontSensor == close stop following the line
   //Use the reedSwitch to check if the block is the magnet
@@ -145,7 +141,18 @@ void follow_line(){
       //the bot should turn 180 degrees
       //continue follow_line()
       //drive until frontSensor == close
-   
+  while (!magnet) {     
+  
+  while (on_track) {
+    
+    if (line_check(LEFT_LINESENSOR) == BLACK &&
+        line_check(RIGHT_LINESENSOR) == BLACK) {
+      Serial.println("Intersection.");
+      left_speed = 0;
+      right_speed = 0;
+      on_track = false;
+
+
     } else if (line_check(LEFT_LINESENSOR) == BLACK) {
       Serial.println("steering left");
       left_speed -= 5;
@@ -156,8 +163,7 @@ void follow_line(){
       Serial.println("found middle");
       left_speed = 100;
       right_speed = 100;
-    }
-
+  
     motor_speed(LEFT_MOTOR, left_speed);
     motor_speed(RIGHT_MOTOR, right_speed);
     delay(50);
@@ -201,6 +207,17 @@ void follow_line(){
  
  }
  
+//when on_track == false we need to turn [LEFT] then continue line following
+//code to turn left below - check if it actually turns 90 deg
+motor_speed(LEFT_MOTOR, -100);
+motor_speed(RIGHT_MOTOR, 100);
+
+//check the reed_switch function
+magnet = reed_switch();
+delay (250);
+
+}
+}
 }
 
 bool go_through(int distance){
@@ -211,4 +228,7 @@ bool go_through(int distance){
     return true;
   }
 }
+
+
+
 
