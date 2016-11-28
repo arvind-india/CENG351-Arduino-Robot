@@ -19,6 +19,8 @@
 
 #define REED_SW_PIN 11
 
+#define CELEBRATION_PIN 12
+
 
 // Custom-written "libraries" for interacting with the robot.
 // Call motor_speed() with a motor side and a speed (-255, 255)
@@ -28,7 +30,7 @@
 #include "linefollow.h"
 #include "sonar.h"
 #include "reed.h"
-
+#include "celebrate.h"
 
 
 void setup() {
@@ -36,28 +38,37 @@ void setup() {
   sonar_setup();
   linefollower_setup();
   reed_setup();
+  celebrate_setup();
 
   Serial.begin(9600);
 }
 
 void loop() {
   //motor_selftest();
-  follow_wall();
+  //reed_selftest();
   //sonar_selftest();
+  //follow_wall();
   //follow_line();
-  
+  //stage_2();
+  celebrate();
+  delay(2000);
 }
 
 
 void follow_wall() {
   const int MAX_SPEED = 80;
-  const int INCREMENT = 3;
+  const int MIN_TURN_SPEED = 45;
+  const int INCREMENT = 4;
   int left_speed = MAX_SPEED, right_speed = MAX_SPEED;
+  
   const size_t avg_size = 2;
   double front_dist[avg_size], side_dist[avg_size];
   double avg_front_dist, avg_side_dist;
   size_t i = 0;
+  
   boolean going = true;
+  unsigned long stuck_timer = 0;
+  double last_front_dist, last_side_dist;
 
   // initialize the rolling averages
   for (double dist = front_distance(); i < avg_size; i++)
@@ -73,12 +84,30 @@ void follow_wall() {
     front_dist[i] = front_distance();
     side_dist[i] = side_distance();
     i = (i+1) % avg_size;
-    for (size_t i = 0; i < avg_size; i++)
-      avg_front_dist=(i==0?front_dist[i]:avg_front_dist+front_dist[i]);
+    last_side_dist = avg_side_dist;
+    last_front_dist = avg_front_dist;
+    for (size_t j = 0; j < avg_size; j++)
+      avg_front_dist=(j==0?front_dist[j]:avg_front_dist+front_dist[j]);
     avg_front_dist /= (double) avg_size;  
-    for (size_t i = 0; i < avg_size; i++)
-      avg_side_dist=(i==0?side_dist[i]:avg_side_dist+side_dist[i]);
+    for (size_t j = 0; j < avg_size; j++)
+      avg_side_dist=(j==0?side_dist[j]:avg_side_dist+side_dist[j]);
     avg_side_dist /= (double) avg_size;
+
+    /* detect when both distance sensor averages are staying */
+    if ((abs(avg_side_dist - last_side_dist) <= 1) &&
+        (abs(avg_front_dist - last_front_dist) <= 1) &&
+        avg_front_dist != 0 && avg_side_dist != 0) {
+
+      /* six second "stuck timer" timeout */
+      if ((millis() - stuck_timer) > (3*1000)) { 
+        motor_speed(LEFT_MOTOR, -70);
+        motor_speed(RIGHT_MOTOR, -70);
+        delay(500);
+        stuck_timer = millis();
+      }
+    } else {
+      stuck_timer = millis();
+    }
 
     /* detect wall in front */
     if (avg_front_dist < 15 && avg_front_dist > 0) {
@@ -90,18 +119,18 @@ void follow_wall() {
       left_speed = MAX_SPEED; right_speed = MAX_SPEED;
 
     /* detect if the wall is too far away */
-    } else if (avg_side_dist > 10 || 
+    } else if (avg_side_dist > 9 || 
                avg_side_dist < 1) {
       right_speed = MAX_SPEED;
       // but don't let the left motor slow down too much
-      if (left_speed > (MAX_SPEED * 2 / 5)) left_speed -= INCREMENT;
+      if (left_speed > MIN_TURN_SPEED) left_speed -= INCREMENT;
       Serial.print("SIDE IS OUT OF RANGE ");
       
     /* detect if the wall is too close */
-    } else if (avg_side_dist < 8) {
+    } else if (avg_side_dist < 6) {
       left_speed = MAX_SPEED;
       // but don't let the other motor slow down too much
-      if (right_speed > (MAX_SPEED * 2 / 5)) right_speed -= INCREMENT;
+      if (right_speed > MIN_TURN_SPEED) right_speed -= INCREMENT;
       Serial.print("SIDE TOO CLOSE       ");
       
     /* detect that we are in the ideal range */
@@ -132,21 +161,9 @@ void follow_line(){
   Serial.println("following line!");
   
   // motor speed as a percent, -100 is full reverse
-  left_speed = 100;
-  right_speed = 100;
+  left_speed = 80;
+  right_speed = 80;
  
-    //Case L (we will always turn left after completing the 2nd stage, this way we can ensure we know exactly which direction we are facing)
-  //The bot should turn left 90 degrees here and continue with follow_line()
-  //Once the frontSensor == close stop following the line
-  //Use the reedSwitch to check if the block is the magnet
-  
-  //If it is the magnet
-      //the bot should pick it up
-      //turn 180 degrees and drive until the rightLineSensor == black
-  //If it is NOT the magnet
-      //the bot should turn 180 degrees
-      //continue follow_line()
-      //drive until frontSensor == close
   while (!magnet) {     
   
     while (on_track) {
@@ -178,22 +195,63 @@ void follow_line(){
     //code to turn left below - check if it actually turns 90 deg
     motor_speed(LEFT_MOTOR, -100);
     motor_speed(RIGHT_MOTOR, 100);
-    delay (250);
-    bot_dir += 1;
-    //this should turn left and add a 1 to the direction code
+    delay(250);
+    motor_speed(LEFT_MOTOR, 0);
+    motor_speed(RIGHT_MOTOR, 0);
+
+    //TODO: REMOVE THIS, THIS IS ONCE WE'VE EXITED THE TUNNEL
+    delay(25000);
     
-    //check the reed_switch function, if it returns false it should turn 180 deg and continue line following
-    magnet = reed_switch();
-    if (magnet == false) {
-      motor_speed (LEFT_MOTOR, -100);
-      motor_speed (RIGHT_MOTOR, 100);
-      delay (500);
-    }
+
+//    while (true) {
+//      double dist_from_wall = front_distance();
+//      if (dist_from_wall > 0 && dist_from_wall < 6.5) {
+//        break; 
+//      } else if (line_check(LEFT_LINESENSOR) == BLACK) {
+//        Serial.println("steering left");
+//        left_speed -= 5;
+//      } else if (line_check(RIGHT_LINESENSOR) == BLACK) {
+//        Serial.println("steering right");
+//        right_speed -= 5;
+//      } else if (line_check(CENTER_LINESENSOR) == BLACK) {
+//        Serial.println("found middle");
+//        left_speed = 100;
+//        right_speed = 100;
+//      }
+//      motor_speed(LEFT_MOTOR, left_speed);
+//      motor_speed(RIGHT_MOTOR, right_speed);
+//      delay(50);
+//    }
+// //check the reed_switch function, if it returns false it should turn 180 deg and continue line following
+//    magnet = reed_switch();
+//
+//   
+//    if (magnet == false) {
+//      motor_speed (LEFT_MOTOR, -100);
+//      motor_speed (RIGHT_MOTOR, 100);
+//      delay (500);
+//
+//          while (true) {
+//            double dist_from_wall = front_distance();
+//            if (dist_from_wall > 0 && dist_from_wall < 6.5) {
+//             break; 
+//            } else if (line_check(LEFT_LINESENSOR) == BLACK) {
+//              Serial.println("steering left");
+//             left_speed -= 5;
+//            } else if (line_check(RIGHT_LINESENSOR) == BLACK) {
+//             Serial.println("steering right");
+//              right_speed -= 5;
+//           } else if (line_check(CENTER_LINESENSOR) == BLACK) {
+//              Serial.println("found middle");
+//              left_speed = 100;
+//              right_speed = 100;
+//            }
+//            motor_speed(LEFT_MOTOR, left_speed);
+//            motor_speed(RIGHT_MOTOR, right_speed);
+//           delay(50);
+//           }
+//    }
   }
-  
-  //check the reed_switch function
-  magnet = reed_switch();
-  delay (250);
 }
   
 

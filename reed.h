@@ -10,3 +10,12 @@ bool reed_switch() {
   return digitalRead(REED_SW_PIN) == LOW;
 }
 
+void reed_selftest() {
+  Serial.print("reed switch = ");
+  if (reed_switch())
+    Serial.print("MAGNET!\n");
+  else
+    Serial.print(":(\n");
+  delay(500);
+}
+
