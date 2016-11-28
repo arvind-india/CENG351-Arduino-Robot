@@ -47,11 +47,9 @@ void loop() {
   //motor_selftest();
   //reed_selftest();
   //sonar_selftest();
-  //follow_wall();
+  follow_wall();
   //follow_line();
   //stage_2();
-  celebrate();
-  delay(2000);
 }
 
 
@@ -98,7 +96,7 @@ void follow_wall() {
         (abs(avg_front_dist - last_front_dist) <= 1) &&
         avg_front_dist != 0 && avg_side_dist != 0) {
 
-      /* six second "stuck timer" timeout */
+      /* 3 second "stuck timer" timeout */
       if ((millis() - stuck_timer) > (3*1000)) { 
         motor_speed(LEFT_MOTOR, -70);
         motor_speed(RIGHT_MOTOR, -70);
