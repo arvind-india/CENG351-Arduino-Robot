@@ -48,14 +48,6 @@ void loop() {
   
 }
 
-bool go_through(int distance){
-  if (distance < 10){
-     return false;
-  }
-  else if (distance > 11){
-    return true;
-  }
-}
 
 void follow_wall() {
   const int MAX_SPEED = 80;
@@ -129,6 +121,8 @@ void follow_wall() {
   }
 }
 
+
+
 void follow_line(){
   bool on_track = true;
   bool magnet = false; 
@@ -155,32 +149,65 @@ void follow_line(){
       //drive until frontSensor == close
   while (!magnet) {     
   
-  while (on_track) {
+    while (on_track) {
     
-    if (line_check(LEFT_LINESENSOR) == BLACK &&
-        line_check(RIGHT_LINESENSOR) == BLACK) {
-      Serial.println("Intersection.");
-      left_speed = 0;
-      right_speed = 0;
-      on_track = false;
+      if (line_check(LEFT_LINESENSOR) == BLACK &&
+          line_check(RIGHT_LINESENSOR) == BLACK) {
+        Serial.println("Intersection.");
+        left_speed = 0;
+        right_speed = 0;
+        on_track = false;
 
-    } else if (line_check(LEFT_LINESENSOR) == BLACK) {
-      Serial.println("steering left");
-      left_speed -= 5;
-    } else if (line_check(RIGHT_LINESENSOR) == BLACK) {
-      Serial.println("steering right");
-      right_speed -= 5;
-    } else if (line_check(CENTER_LINESENSOR) == BLACK) {
-      Serial.println("found middle");
-      left_speed = 100;
-      right_speed = 100;
-  
-    motor_speed(LEFT_MOTOR, left_speed);
-    motor_speed(RIGHT_MOTOR, right_speed);
-    delay(50);
+      } else if (line_check(LEFT_LINESENSOR) == BLACK) {
+        Serial.println("steering left");
+        left_speed -= 5;
+      } else if (line_check(RIGHT_LINESENSOR) == BLACK) {
+        Serial.println("steering right");
+        right_speed -= 5;
+      } else if (line_check(CENTER_LINESENSOR) == BLACK) {
+        Serial.println("found middle");
+        left_speed = 100;
+        right_speed = 100;
+      }
+      motor_speed(LEFT_MOTOR, left_speed);
+      motor_speed(RIGHT_MOTOR, right_speed);
+      delay(50);
+    }
+
+    //when on_track == false we need to turn [LEFT] then continue line following
+    //code to turn left below - check if it actually turns 90 deg
+    motor_speed(LEFT_MOTOR, -100);
+    motor_speed(RIGHT_MOTOR, 100);
+    delay (250);
+    bot_dir += 1;
+    //this should turn left and add a 1 to the direction code
+    
+    //check the reed_switch function, if it returns false it should turn 180 deg and continue line following
+    magnet = reed_switch();
+    if (magnet == false) {
+      motor_speed (LEFT_MOTOR, -100);
+      motor_speed (RIGHT_MOTOR, 100);
+      delay (500);
+    }
   }
+  
+  //check the reed_switch function
+  magnet = reed_switch();
+  delay (250);
+}
+  
 
 
+bool go_through(int distance){
+  if (distance < 10){
+     return false;
+  }
+  else if (distance > 11){
+    return true;
+  }
+}
+
+void stage_2() {
   /* 
    *  This section of the code should complete part two of the 
    *  obstacle course, given a boolean value saying that the robot 
@@ -190,57 +217,32 @@ void follow_line(){
   bool facing; //when true, facing left.  when false, facing right
   if (enter == true){
   
-  motor_speed(LEFT_MOTOR, 80);
-  motor_speed(RIGHT_MOTOR, -80);
-  delay(500);
-  
-  while (go_through(side_distance()) != true || front_distance() > 3){   
-    motor_speed(LEFT_MOTOR, 80);
-    motor_speed(RIGHT_MOTOR, 80);
-  }
-  if(go_through(side_distance()) == true){
-    motor_speed(LEFT_MOTOR, 80);
-    motor_speed(RIGHT_MOTOR, -80);
-    delay(125);
-    motor_speed(LEFT_MOTOR, 100);
-    motor_speed(RIGHT_MOTOR, 100);
-    delay(1000);
-  }
-  if (front_distance() > 3){
     motor_speed(LEFT_MOTOR, 80);
     motor_speed(RIGHT_MOTOR, -80);
     delay(500);
-    while(front_distance() > 3){
+  
+    while (go_through(side_distance()) != true || front_distance() > 3) {   
       motor_speed(LEFT_MOTOR, 80);
       motor_speed(RIGHT_MOTOR, 80);
-      facing = false;
+    }
+    if(go_through(side_distance()) == true){
+      motor_speed(LEFT_MOTOR, 80);
+      motor_speed(RIGHT_MOTOR, -80);
+      delay(125);
+      motor_speed(LEFT_MOTOR, 100);
+      motor_speed(RIGHT_MOTOR, 100);
+      delay(1000);
+    }
+    if (front_distance() > 3){
+      motor_speed(LEFT_MOTOR, 80);
+      motor_speed(RIGHT_MOTOR, -80);
+      delay(500);
+      while(front_distance() > 3){
+        motor_speed(LEFT_MOTOR, 80);
+        motor_speed(RIGHT_MOTOR, 80);
+        facing = false;
+      }
     }
   }
- 
- }
-
-//when on_track == false we need to turn [LEFT] then continue line following
-//code to turn left below - check if it actually turns 90 deg
-motor_speed(LEFT_MOTOR, -100);
-motor_speed(RIGHT_MOTOR, 100);
-delay (250);
-bot_dir += 1;
-//this should turn left and add a 1 to the direction code
-
-//check the reed_switch function, if it returns false it should turn 180 deg and continue line following
-magnet = reed_switch();
-  if (magnet == false) {
-    motor_speed (LEFT_MOTOR, -100);
-    motor_speed (RIGHT_MOTOR, 100);
-    delay (500);
-  }
-
-}
-}
-
-
-//check the reed_switch function
-magnet = reed_switch();
-delay (250);
 }
 
