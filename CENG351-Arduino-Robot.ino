@@ -135,18 +135,6 @@ void follow_line(){
   left_speed = 100;
   right_speed = 100;
  
-    //Case L (we will always turn left after completing the 2nd stage, this way we can ensure we know exactly which direction we are facing)
-  //The bot should turn left 90 degrees here and continue with follow_line()
-  //Once the frontSensor == close stop following the line
-  //Use the reedSwitch to check if the block is the magnet
-  
-  //If it is the magnet
-      //the bot should pick it up
-      //turn 180 degrees and drive until the rightLineSensor == black
-  //If it is NOT the magnet
-      //the bot should turn 180 degrees
-      //continue follow_line()
-      //drive until frontSensor == close
   while (!magnet) {     
   
     while (on_track) {
@@ -179,21 +167,56 @@ void follow_line(){
     motor_speed(LEFT_MOTOR, -100);
     motor_speed(RIGHT_MOTOR, 100);
     delay (250);
-    bot_dir += 1;
-    //this should turn left and add a 1 to the direction code
-    
-    //check the reed_switch function, if it returns false it should turn 180 deg and continue line following
+
+    while (true) {
+      double dist_from_wall = front_distance();
+      if (dist_from_wall > 0 && dist_from_wall < 6.5) {
+        break; 
+      } else if (line_check(LEFT_LINESENSOR) == BLACK) {
+        Serial.println("steering left");
+        left_speed -= 5;
+      } else if (line_check(RIGHT_LINESENSOR) == BLACK) {
+        Serial.println("steering right");
+        right_speed -= 5;
+      } else if (line_check(CENTER_LINESENSOR) == BLACK) {
+        Serial.println("found middle");
+        left_speed = 100;
+        right_speed = 100;
+      }
+      motor_speed(LEFT_MOTOR, left_speed);
+      motor_speed(RIGHT_MOTOR, right_speed);
+      delay(50);
+    }
+ //check the reed_switch function, if it returns false it should turn 180 deg and continue line following
     magnet = reed_switch();
+
+   
     if (magnet == false) {
       motor_speed (LEFT_MOTOR, -100);
       motor_speed (RIGHT_MOTOR, 100);
       delay (500);
+
+          while (true) {
+            double dist_from_wall = front_distance();
+            if (dist_from_wall > 0 && dist_from_wall < 6.5) {
+             break; 
+            } else if (line_check(LEFT_LINESENSOR) == BLACK) {
+              Serial.println("steering left");
+             left_speed -= 5;
+            } else if (line_check(RIGHT_LINESENSOR) == BLACK) {
+             Serial.println("steering right");
+              right_speed -= 5;
+           } else if (line_check(CENTER_LINESENSOR) == BLACK) {
+              Serial.println("found middle");
+              left_speed = 100;
+              right_speed = 100;
+            }
+            motor_speed(LEFT_MOTOR, left_speed);
+            motor_speed(RIGHT_MOTOR, right_speed);
+           delay(50);
+           }
     }
   }
-  
-  //check the reed_switch function
-  magnet = reed_switch();
-  delay (250);
 }
   
 
