@@ -213,9 +213,8 @@ void stage_2() {
    *  obstacle course, given a boolean value saying that the robot 
    *  has entered that part of the course.  
    */
-  bool enter = true; //Has the robot entered the second stage?  
+   //Has the robot entered the second stage?  
   bool facing; //when true, facing left.  when false, facing right
-  if (enter == true){
   
     motor_speed(LEFT_MOTOR, 80);
     motor_speed(RIGHT_MOTOR, -80);
@@ -243,6 +242,6 @@ void stage_2() {
         facing = false;
       }
     }
-  }
+
 }
 
