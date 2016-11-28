@@ -44,6 +44,8 @@ void loop() {
   //motor_selftest();
   follow_wall();
   //sonar_selftest();
+  //follow_line();
+  
 }
 
 void follow_wall() {
@@ -120,8 +122,8 @@ void follow_wall() {
 void follow_line(){
   bool on_track = true;
   bool magnet = false; 
-  int bot_dir = 1; 
-    // bot_dir  0 = left, 1 = right
+  int bot_dir = 0; 
+    // bot_dir  odd = left, even = right
 
   Serial.println("following line!");
   
@@ -152,7 +154,6 @@ void follow_line(){
       right_speed = 0;
       on_track = false;
 
-
     } else if (line_check(LEFT_LINESENSOR) == BLACK) {
       Serial.println("steering left");
       left_speed -= 5;
@@ -173,10 +174,17 @@ void follow_line(){
 //code to turn left below - check if it actually turns 90 deg
 motor_speed(LEFT_MOTOR, -100);
 motor_speed(RIGHT_MOTOR, 100);
-
-//check the reed_switch function
-magnet = reed_switch();
 delay (250);
+bot_dir += 1;
+//this should turn left and add a 1 to the direction code
+
+//check the reed_switch function, if it returns false it should turn 180 deg and continue line following
+magnet = reed_switch();
+  if (magnet == false) {
+    motor_speed (LEFT_MOTOR, -100);
+    motor_speed (RIGHT_MOTOR, 100);
+    delay (500);
+  }
 
 }
 }
