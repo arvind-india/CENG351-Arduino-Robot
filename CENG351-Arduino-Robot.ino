@@ -42,10 +42,10 @@ void setup() {
 
 void loop() {
   //motor_selftest();
-  follow_wall();
+  //follow_wall();
   //sonar_selftest();
   //follow_line();
-  
+  //reed_selftest();
 }
 
 
