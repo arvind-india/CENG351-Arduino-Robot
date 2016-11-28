@@ -162,4 +162,53 @@ void follow_line(){
     motor_speed(RIGHT_MOTOR, right_speed);
     delay(50);
   }
+
+  /* 
+   *  This section of the code should complete part two of the 
+   *  obstacle course, given a boolean value saying that the robot 
+   *  has entered that part of the course.  
+   */
+  bool enter = true; //Has the robot entered the second stage?  
+  bool facing; //when true, facing left.  when false, facing right
+  if (enter == true){
+  
+  motor_speed(LEFT_MOTOR, 80);
+  motor_speed(RIGHT_MOTOR, -80);
+  delay(500);
+  
+  while (go_through(side_distance()) != true || front_distance() > 3){   
+    motor_speed(LEFT_MOTOR, 80);
+    motor_speed(RIGHT_MOTOR, 80);
+  }
+  if(go_through(side_distance()) == true){
+    motor_speed(LEFT_MOTOR, 80);
+    motor_speed(RIGHT_MOTOR, -80);
+    delay(125);
+    motor_speed(LEFT_MOTOR, 100);
+    motor_speed(RIGHT_MOTOR, 100);
+    delay(1000);
+  }
+  if (front_distance() > 3){
+    motor_speed(LEFT_MOTOR, 80);
+    motor_speed(RIGHT_MOTOR, -80);
+    delay(500);
+    while(front_distance() > 3){
+      motor_speed(LEFT_MOTOR, 80);
+      motor_speed(RIGHT_MOTOR, 80);
+      facing = false;
+    }
+  }
+ 
+ }
+ 
 }
+
+bool go_through(int distance){
+  if (distance < 10){
+     return false;
+  }
+  else if (distance > 11){
+    return true;
+  }
+}
+
