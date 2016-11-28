@@ -54,9 +54,9 @@ void loop() {
 
 
 void follow_wall() {
-  const int MAX_SPEED = 80;
-  const int MIN_TURN_SPEED = 45;
-  const int INCREMENT = 4;
+  const int MAX_SPEED = 70;
+  const int MIN_TURN_SPEED = 40;
+  const int INCREMENT = 5;
   int left_speed = MAX_SPEED, right_speed = MAX_SPEED;
   
   const size_t avg_size = 2;
@@ -92,12 +92,12 @@ void follow_wall() {
     avg_side_dist /= (double) avg_size;
 
     /* detect when both distance sensor averages are staying */
-    if ((abs(avg_side_dist - last_side_dist) <= 1) &&
-        (abs(avg_front_dist - last_front_dist) <= 1) &&
+    if ((abs(avg_side_dist - last_side_dist) <= 1 || avg_side_dist > 100) &&
+        (abs(avg_front_dist - last_front_dist) <= 1 || avg_front_dist > 100) &&
         avg_front_dist != 0 && avg_side_dist != 0) {
 
       /* 3 second "stuck timer" timeout */
-      if ((millis() - stuck_timer) > (3*1000)) { 
+      if ((millis() - stuck_timer) > (4*1000)) { 
         motor_speed(LEFT_MOTOR, -70);
         motor_speed(RIGHT_MOTOR, -70);
         delay(500);
@@ -269,8 +269,9 @@ void stage_2() {
    *  obstacle course, given a boolean value saying that the robot 
    *  has entered that part of the course.  
    */
-   //Has the robot entered the second stage?  
+  bool enter = true; //Has the robot entered the second stage?  
   bool facing; //when true, facing left.  when false, facing right
+  if (enter == true){
   
     motor_speed(LEFT_MOTOR, 80);
     motor_speed(RIGHT_MOTOR, -80);
@@ -298,6 +299,6 @@ void stage_2() {
         facing = false;
       }
     }
-
+  }
 }
 
