@@ -1,3 +1,5 @@
+#include "Arduino.h"
+
 /* Pin Assignments */
 #define LEFT_MOTOR_3A4A 6
 #define LEFT_MOTOR_3A 8
@@ -5,9 +7,6 @@
 #define RIGHT_MOTOR_1A2A 5
 #define RIGHT_MOTOR_1A 10
 #define RIGHT_MOTOR_2A 9
-
-#define LEFT_WHISKER 12
-#define RIGHT_WHISKER 13
 
 #define LINEFOLLOW_LEFT A2
 #define LINEFOLLOW_CENTER A0
@@ -18,6 +17,8 @@
 #define SSIDE_TRIG 4
 #define SSIDE_ECHO 3
 
+#define REED_SW_PIN 11
+
 
 // Custom-written "libraries" for interacting with the robot.
 // Call motor_speed() with a motor side and a speed (-255, 255)
@@ -26,16 +27,15 @@
 #include "motors.h"
 #include "linefollow.h"
 #include "sonar.h"
+#include "reed.h"
 
-bool reed_switch () {
-return true;
-//should return true if the magnet is sensed
-}
+
 
 void setup() {
   motors_setup();
   sonar_setup();
   linefollower_setup();
+  reed_setup();
 
   Serial.begin(9600);
 }
@@ -48,8 +48,18 @@ void loop() {
   
 }
 
+bool go_through(int distance){
+  if (distance < 10){
+     return false;
+  }
+  else if (distance > 11){
+    return true;
+  }
+}
+
 void follow_wall() {
-  const int MAX_SPEED = 100;
+  const int MAX_SPEED = 80;
+  const int INCREMENT = 3;
   int left_speed = MAX_SPEED, right_speed = MAX_SPEED;
   const size_t avg_size = 2;
   double front_dist[avg_size], side_dist[avg_size];
@@ -88,18 +98,18 @@ void follow_wall() {
       left_speed = MAX_SPEED; right_speed = MAX_SPEED;
 
     /* detect if the wall is too far away */
-    } else if (avg_side_dist > 11 || 
+    } else if (avg_side_dist > 10 || 
                avg_side_dist < 1) {
       right_speed = MAX_SPEED;
       // but don't let the left motor slow down too much
-      if (left_speed > (MAX_SPEED * 2 / 5)) left_speed -= 5;
+      if (left_speed > (MAX_SPEED * 2 / 5)) left_speed -= INCREMENT;
       Serial.print("SIDE IS OUT OF RANGE ");
       
     /* detect if the wall is too close */
-    } else if (avg_side_dist < 7) {
+    } else if (avg_side_dist < 8) {
       left_speed = MAX_SPEED;
       // but don't let the other motor slow down too much
-      if (right_speed > (MAX_SPEED * 2 / 5)) right_speed -= 5;
+      if (right_speed > (MAX_SPEED * 2 / 5)) right_speed -= INCREMENT;
       Serial.print("SIDE TOO CLOSE       ");
       
     /* detect that we are in the ideal range */
@@ -169,7 +179,46 @@ void follow_line(){
     motor_speed(RIGHT_MOTOR, right_speed);
     delay(50);
   }
-}
+
+
+  /* 
+   *  This section of the code should complete part two of the 
+   *  obstacle course, given a boolean value saying that the robot 
+   *  has entered that part of the course.  
+   */
+  bool enter = true; //Has the robot entered the second stage?  
+  bool facing; //when true, facing left.  when false, facing right
+  if (enter == true){
+  
+  motor_speed(LEFT_MOTOR, 80);
+  motor_speed(RIGHT_MOTOR, -80);
+  delay(500);
+  
+  while (go_through(side_distance()) != true || front_distance() > 3){   
+    motor_speed(LEFT_MOTOR, 80);
+    motor_speed(RIGHT_MOTOR, 80);
+  }
+  if(go_through(side_distance()) == true){
+    motor_speed(LEFT_MOTOR, 80);
+    motor_speed(RIGHT_MOTOR, -80);
+    delay(125);
+    motor_speed(LEFT_MOTOR, 100);
+    motor_speed(RIGHT_MOTOR, 100);
+    delay(1000);
+  }
+  if (front_distance() > 3){
+    motor_speed(LEFT_MOTOR, 80);
+    motor_speed(RIGHT_MOTOR, -80);
+    delay(500);
+    while(front_distance() > 3){
+      motor_speed(LEFT_MOTOR, 80);
+      motor_speed(RIGHT_MOTOR, 80);
+      facing = false;
+    }
+  }
+ 
+ }
+
 //when on_track == false we need to turn [LEFT] then continue line following
 //code to turn left below - check if it actually turns 90 deg
 motor_speed(LEFT_MOTOR, -100);
@@ -190,9 +239,8 @@ magnet = reed_switch();
 }
 
 
-
-
-
-
-
+//check the reed_switch function
+magnet = reed_switch();
+delay (250);
+}
 

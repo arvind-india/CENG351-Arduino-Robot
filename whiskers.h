@@ -14,3 +14,4 @@ void whiskers_setup() {
 bool hit_detect(int whisker) {
 	return (digitalRead(whisker) == HIGH);
 }
+
