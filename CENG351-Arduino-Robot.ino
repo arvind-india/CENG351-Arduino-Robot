@@ -48,6 +48,11 @@ void loop() {
   //reed_selftest();
   //sonar_selftest();
   follow_wall();
+  motor_speed(LEFT_MOTOR, 0);
+  motor_speed(RIGHT_MOTOR, 0);
+  digitalWrite(CELEBRATION_PIN, HIGH);
+  delay(2000);
+  digitalWrite(CELEBRATION_PIN, LOW);
   //follow_line();
   //stage_2();
 }
@@ -67,6 +72,9 @@ void follow_wall() {
   boolean going = true;
   unsigned long stuck_timer = 0;
   double last_front_dist, last_side_dist;
+
+  unsigned long check_for_lines_timer = millis();
+  unsigned short line_seen_counter = 0;
 
   // initialize the rolling averages
   for (double dist = front_distance(); i < avg_size; i++)
@@ -145,6 +153,22 @@ void follow_wall() {
     motor_speed(LEFT_MOTOR, left_speed);
     motor_speed(RIGHT_MOTOR, right_speed);
     delay(50);
+
+    /* Countinually check to see if we happen to make it to 
+       the line-sensor part of the course by accident, but only
+       check if it's been long enough for that to happen 
+       ( arbitarily picked number of seconds to wait before we should be
+         clear of the start, but that we couldn't be through the tunnel yet
+       
+       ( this helps us ignore the black tape at the start) */
+    if (millis() - check_for_lines_timer >= 5*1000 &&
+       (line_check_raw(LEFT_LINESENSOR) <= 500 ||
+        line_check_raw(RIGHT_LINESENSOR) <= 500 ||
+        line_check_raw(CENTER_LINESENSOR) <= 500 )) {
+      line_seen_counter++;
+      if (line_seen_counter > 2)    
+        going = false;
+    }
   }
 }
 
