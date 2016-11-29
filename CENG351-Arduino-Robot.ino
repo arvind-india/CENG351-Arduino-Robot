@@ -50,7 +50,7 @@ void loop() {
   follow_wall();
 //  follow_line();
 
-  // show off we finished firs two stages
+  // show off we finished first two stages
   on();
   delay(500);
   off();
@@ -59,13 +59,13 @@ void loop() {
   delay(500);
   off();
   
-  follow_line();
-  while (true);
+  //follow_line();
+  //while (true);
 }
 
 
 void follow_wall() {
-  const int MAX_SPEED = 70;
+  const int MAX_SPEED = 80;
   const int MIN_TURN_SPEED = 40;
   const int INCREMENT = 5;
   int left_speed = MAX_SPEED, right_speed = MAX_SPEED;
@@ -131,9 +131,9 @@ void follow_wall() {
       left_speed = MAX_SPEED; right_speed = MAX_SPEED;
 
     /* detect if the wall is too far away */
-    } else if (avg_side_dist > 8.75 || 
-               avg_side_dist < 1.5) {
-      right_speed = MAX_SPEED; //9 originally
+    } else if (avg_side_dist > 9.00 || 
+               avg_side_dist < 2.00) {
+      right_speed = MAX_SPEED; //9 & 1 originally
       // but don't let the left motor slow down too much
       if (left_speed > MIN_TURN_SPEED) left_speed -= INCREMENT;
       Serial.print("SIDE IS OUT OF RANGE ");
@@ -209,8 +209,8 @@ void follow_line(){
       left_speed = 0;
       right_speed = 0;
       delay(500);
-      on_track = false;
-
+      //on_track = false;
+      break;
     } else if (line_check(LEFT_LINESENSOR) == BLACK) {
       Serial.println("1steering left");
       if (left_speed > MIN_TURN_SPEED) left_speed -= INCREMENT;
