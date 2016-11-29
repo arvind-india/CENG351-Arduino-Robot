@@ -47,8 +47,8 @@ void loop() {
 //  motor_selftest();
 //  reed_selftest();
 //  sonar_selftest();
-//  follow_wall();
-  follow_line();
+  follow_wall();
+//  follow_line();
 }
 
 
@@ -119,9 +119,9 @@ void follow_wall() {
       left_speed = MAX_SPEED; right_speed = MAX_SPEED;
 
     /* detect if the wall is too far away */
-    } else if (avg_side_dist > 9 || 
-               avg_side_dist < 1) {
-      right_speed = MAX_SPEED;
+    } else if (avg_side_dist > 8.75 || 
+               avg_side_dist < 1.5) {
+      right_speed = MAX_SPEED; //9 originally
       // but don't let the left motor slow down too much
       if (left_speed > MIN_TURN_SPEED) left_speed -= INCREMENT;
       Serial.print("SIDE IS OUT OF RANGE ");

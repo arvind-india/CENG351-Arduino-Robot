@@ -4,7 +4,10 @@
 
 #define ONCE (200)
 
-
+/*
+ * This is our robot celebration when it completes the course.  It 
+ * celebrates by blinking yay in morse code.  
+ */
 void celebrate_setup() {
   pinMode(CELEBRATION_PIN, OUTPUT);
   digitalWrite(CELEBRATION_PIN, LOW);
