@@ -47,20 +47,20 @@ void loop() {
 //  motor_selftest();
 //  reed_selftest();
 //  sonar_selftest();
+//  linefollower_selftest();
   follow_wall();
-//  follow_line();
 
-  // show off we finished first two stages
+  /* show off we finished first two stages */
   on();
-  delay(500);
+  delay(5000);
   off();
   delay(500);
   on();
   delay(500);
   off();
-  
-  //follow_line();
-  //while (true);
+
+  follow_line();
+//  while (true);
 }
 
 
@@ -106,12 +106,12 @@ void follow_wall() {
     avg_side_dist /= (double) avg_size;
 
     /* detect when both distance sensor averages are staying */
-    if ((abs(avg_side_dist - last_side_dist) <= 1 || avg_side_dist > 100) &&
-        (abs(avg_front_dist - last_front_dist) <= 1 || avg_front_dist > 100) &&
+    if (((abs(avg_side_dist - last_side_dist)   <= 1) ||
+         (abs(avg_front_dist - last_front_dist) <= 1)) &&
         avg_front_dist != 0 && avg_side_dist != 0) {
 
       /* 3 second "stuck timer" timeout */
-      if ((millis() - stuck_timer) > (4*1000)) { 
+      if ((millis() - stuck_timer) > (3*1000)) { 
         motor_speed(LEFT_MOTOR, -70);
         motor_speed(RIGHT_MOTOR, -70);
         delay(500);
@@ -168,9 +168,9 @@ void follow_wall() {
        
        ( this helps us ignore the black tape at the start) */
     if (millis() - check_for_lines_timer >= 5*1000 &&
-       (line_check_raw(LEFT_LINESENSOR) <= 400 ||
-        line_check_raw(RIGHT_LINESENSOR) <= 400 ||
-        line_check_raw(CENTER_LINESENSOR) <= 400 )) {
+       (line_check_raw(LEFT_LINESENSOR) >= 900 ||
+        line_check_raw(RIGHT_LINESENSOR) >= 900 ||
+        line_check_raw(CENTER_LINESENSOR) >= 900 )) {
       line_seen_counter++;
       if (line_seen_counter > 2)    
         going = false;

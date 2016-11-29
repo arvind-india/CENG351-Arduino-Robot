@@ -55,3 +55,14 @@ lightlevel_t line_check(linesensor_t sens) {
 	return line_check_raw(sens) < 800 ? WHITE : BLACK;
 }
 
+void linefollower_selftest() {
+  size_t i;
+  i = Serial.print(line_check_raw(LEFT_LINESENSOR));
+  while (i < 8) { Serial.print(" "); i--;}
+  i = Serial.print(line_check_raw(CENTER_LINESENSOR));
+  while (i < 8) { Serial.print(" "); i--;}
+  Serial.print(line_check_raw(RIGHT_LINESENSOR));
+  Serial.print("\n");
+  delay(500);
+}
+
