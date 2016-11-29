@@ -44,17 +44,11 @@ void setup() {
 }
 
 void loop() {
-  //motor_selftest();
-  //reed_selftest();
-  //sonar_selftest();
+//  motor_selftest();
+//  reed_selftest();
+//  sonar_selftest();
 //  follow_wall();
-//  motor_speed(LEFT_MOTOR, 0);
-//  motor_speed(RIGHT_MOTOR, 0);
-//  digitalWrite(CELEBRATION_PIN, HIGH);
-//  delay(2000);
-//  digitalWrite(CELEBRATION_PIN, LOW);
   follow_line();
-  //stage_2();
 }
 
 
@@ -162,9 +156,9 @@ void follow_wall() {
        
        ( this helps us ignore the black tape at the start) */
     if (millis() - check_for_lines_timer >= 5*1000 &&
-       (line_check_raw(LEFT_LINESENSOR) <= 500 ||
-        line_check_raw(RIGHT_LINESENSOR) <= 500 ||
-        line_check_raw(CENTER_LINESENSOR) <= 500 )) {
+       (line_check_raw(LEFT_LINESENSOR) <= 400 ||
+        line_check_raw(RIGHT_LINESENSOR) <= 400 ||
+        line_check_raw(CENTER_LINESENSOR) <= 400 )) {
       line_seen_counter++;
       if (line_seen_counter > 2)    
         going = false;
@@ -185,9 +179,7 @@ void follow_line(){
   double avg_dist; 
   
   bool on_track = true;
-  bool magnet = false; 
-  int bot_dir = 0; 
-    // bot_dir  odd = left, even = right
+  bool magnet = false;
 
   Serial.println("following line!");
   
@@ -277,5 +269,32 @@ void follow_line(){
   digitalWrite(CELEBRATION_PIN, LOW);
   
   /* Once the robot is here, we've found the left side block. */
+  /* so, check for the magnet */
+  magnet = reed_switch();
+
+  /* Spin a 180! */
+  motor_speed(LEFT_MOTOR, -1*MAX_SPEED);
+  motor_speed(RIGHT_MOTOR, MAX_SPEED);
+  delay(500);
+  motor_speed(LEFT_MOTOR, 0);
+  motor_speed(RIGHT_MOTOR, 0);
+  delay(1000);
+
+ 
+  /* We have the magnet now, go until we find the left-turn "T"
+     intersection to the garage and follow the line that way */
+  if (magnet) {
+
+  }
+
+  /* The other side has the magnet, go over there (just like the
+     last line-following chunk of code) and grab it,
+     then 180, follow the track until seeing the right-turn "T"
+     intersection to the garage, follow the line that way.*/
+  else {
+
+  }
+
+  /* C E L E B R A T E */
   
 }
