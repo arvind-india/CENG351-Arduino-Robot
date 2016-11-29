@@ -47,13 +47,13 @@ void loop() {
   //motor_selftest();
   //reed_selftest();
   //sonar_selftest();
-  follow_wall();
-  motor_speed(LEFT_MOTOR, 0);
-  motor_speed(RIGHT_MOTOR, 0);
-  digitalWrite(CELEBRATION_PIN, HIGH);
-  delay(2000);
-  digitalWrite(CELEBRATION_PIN, LOW);
-  //follow_line();
+//  follow_wall();
+//  motor_speed(LEFT_MOTOR, 0);
+//  motor_speed(RIGHT_MOTOR, 0);
+//  digitalWrite(CELEBRATION_PIN, HIGH);
+//  delay(2000);
+//  digitalWrite(CELEBRATION_PIN, LOW);
+  follow_line();
   //stage_2();
 }
 
@@ -175,6 +175,15 @@ void follow_wall() {
 
 
 void follow_line(){
+  const int MAX_SPEED = 90;
+  const int INCREMENT = 5;
+  const int MIN_TURN_SPEED = 50;
+
+  const size_t avg_size = 3;
+  double dists[avg_size];
+  size_t dist_pos = 0;
+  double avg_dist; 
+  
   bool on_track = true;
   bool magnet = false; 
   int bot_dir = 0; 
@@ -183,146 +192,90 @@ void follow_line(){
   Serial.println("following line!");
   
   // motor speed as a percent, -100 is full reverse
-  left_speed = 80;
-  right_speed = 80;
- 
-  while (!magnet) {     
+  left_speed = MAX_SPEED;
+  right_speed = MAX_SPEED;
+
+  while (on_track) {
   
-    while (on_track) {
+    if (line_check(LEFT_LINESENSOR) == BLACK &&
+        line_check(RIGHT_LINESENSOR) == BLACK) {
+      Serial.println("Intersection.");
+      left_speed = 0;
+      right_speed = 0;
+      on_track = false;
+
+    } else if (line_check(LEFT_LINESENSOR) == BLACK) {
+      Serial.println("steering left");
+      if (left_speed > MIN_TURN_SPEED) left_speed -= INCREMENT;
+    } else if (line_check(RIGHT_LINESENSOR) == BLACK) {
+      Serial.println("steering right");
+      if (right_speed > MIN_TURN_SPEED) right_speed -= INCREMENT;
+    } else if (line_check(CENTER_LINESENSOR) == BLACK) {
+      Serial.println("found middle");
+      left_speed = MAX_SPEED;
+      right_speed = MAX_SPEED;
+    }
+    motor_speed(LEFT_MOTOR, left_speed);
+    motor_speed(RIGHT_MOTOR, right_speed);
+    delay(50);
+  }
+
+  /* Turn 90 degrees */
+  motor_speed(LEFT_MOTOR, -1*MAX_SPEED);
+  motor_speed(RIGHT_MOTOR, MAX_SPEED);
+  delay(250);
+  motor_speed(LEFT_MOTOR, 0);
+  motor_speed(RIGHT_MOTOR, 0);
+  delay(1000);
+  
+
+  /* Initialize rolling average for front ultrasonic sensor */
+  for (size_t j = 0; j < avg_size; j++) {
+    dists[j] = front_distance();
+    avg_dist = ( j == 0 ? dists[j] : avg_dist + dists[j] );
+  }
+  avg_dist /= (double) avg_size;
+
+  left_speed = MAX_SPEED;
+  right_speed = MAX_SPEED;
+  on_track = true;
+  while (on_track) {
+    dists[dist_pos] = front_distance();
+    dist_pos = (dist_pos + 1 == avg_size ? 0 : dist_pos + 1);
+    for (size_t j = 0; j < avg_size; j++) {
+      avg_dist = ( j == 0 ? dists[j] : avg_dist + dists[j]);
+    }
+    avg_dist /= avg_size;
     
-      if (line_check(LEFT_LINESENSOR) == BLACK &&
-          line_check(RIGHT_LINESENSOR) == BLACK) {
-        Serial.println("Intersection.");
-        left_speed = 0;
-        right_speed = 0;
-        on_track = false;
+    if (avg_dist >= 1 && avg_dist <= 7) {
+      Serial.println("Side found.");
+      left_speed = 0;
+      right_speed = 0;
+      on_track = false;
 
-      } else if (line_check(LEFT_LINESENSOR) == BLACK) {
-        Serial.println("steering left");
-        left_speed -= 5;
-      } else if (line_check(RIGHT_LINESENSOR) == BLACK) {
-        Serial.println("steering right");
-        right_speed -= 5;
-      } else if (line_check(CENTER_LINESENSOR) == BLACK) {
-        Serial.println("found middle");
-        left_speed = 100;
-        right_speed = 100;
-      }
-      motor_speed(LEFT_MOTOR, left_speed);
-      motor_speed(RIGHT_MOTOR, right_speed);
-      delay(50);
+    } else if (line_check(LEFT_LINESENSOR) == BLACK) {
+      Serial.println("steering left");
+      if (left_speed > MIN_TURN_SPEED) left_speed -= INCREMENT;
+    } else if (line_check(RIGHT_LINESENSOR) == BLACK) {
+      Serial.println("steering right");
+      if (right_speed > MIN_TURN_SPEED) right_speed -= INCREMENT;
+    } else if (line_check(CENTER_LINESENSOR) == BLACK) {
+      Serial.println("found middle");
+      left_speed = MAX_SPEED;
+      right_speed = MAX_SPEED;
     }
-
-    //when on_track == false we need to turn [LEFT] then continue line following
-    //code to turn left below - check if it actually turns 90 deg
-    motor_speed(LEFT_MOTOR, -100);
-    motor_speed(RIGHT_MOTOR, 100);
-    delay(250);
-    motor_speed(LEFT_MOTOR, 0);
-    motor_speed(RIGHT_MOTOR, 0);
-
-    //TODO: REMOVE THIS, THIS IS ONCE WE'VE EXITED THE TUNNEL
-    delay(25000);
     
-
-//    while (true) {
-//      double dist_from_wall = front_distance();
-//      if (dist_from_wall > 0 && dist_from_wall < 6.5) {
-//        break; 
-//      } else if (line_check(LEFT_LINESENSOR) == BLACK) {
-//        Serial.println("steering left");
-//        left_speed -= 5;
-//      } else if (line_check(RIGHT_LINESENSOR) == BLACK) {
-//        Serial.println("steering right");
-//        right_speed -= 5;
-//      } else if (line_check(CENTER_LINESENSOR) == BLACK) {
-//        Serial.println("found middle");
-//        left_speed = 100;
-//        right_speed = 100;
-//      }
-//      motor_speed(LEFT_MOTOR, left_speed);
-//      motor_speed(RIGHT_MOTOR, right_speed);
-//      delay(50);
-//    }
-// //check the reed_switch function, if it returns false it should turn 180 deg and continue line following
-//    magnet = reed_switch();
-//
-//   
-//    if (magnet == false) {
-//      motor_speed (LEFT_MOTOR, -100);
-//      motor_speed (RIGHT_MOTOR, 100);
-//      delay (500);
-//
-//          while (true) {
-//            double dist_from_wall = front_distance();
-//            if (dist_from_wall > 0 && dist_from_wall < 6.5) {
-//             break; 
-//            } else if (line_check(LEFT_LINESENSOR) == BLACK) {
-//              Serial.println("steering left");
-//             left_speed -= 5;
-//            } else if (line_check(RIGHT_LINESENSOR) == BLACK) {
-//             Serial.println("steering right");
-//              right_speed -= 5;
-//           } else if (line_check(CENTER_LINESENSOR) == BLACK) {
-//              Serial.println("found middle");
-//              left_speed = 100;
-//              right_speed = 100;
-//            }
-//            motor_speed(LEFT_MOTOR, left_speed);
-//            motor_speed(RIGHT_MOTOR, right_speed);
-//           delay(50);
-//           }
-//    }
+    motor_speed(LEFT_MOTOR, left_speed);
+    motor_speed(RIGHT_MOTOR, right_speed);
+    //delay(50); /* Delay not needed b/c sonar call takes 60ms */
   }
-}
+
+  motor_speed(LEFT_MOTOR, 0);
+  motor_speed(RIGHT_MOTOR, 0);
+  digitalWrite(CELEBRATION_PIN, HIGH);
+  delay(2000);
+  digitalWrite(CELEBRATION_PIN, LOW);
   
-
-
-bool go_through(int distance){
-  if (distance < 10){
-     return false;
-  }
-  else if (distance > 11){
-    return true;
-  }
-}
-
-void stage_2() {
-  /* 
-   *  This section of the code should complete part two of the 
-   *  obstacle course, given a boolean value saying that the robot 
-   *  has entered that part of the course.  
-   */
-  bool enter = true; //Has the robot entered the second stage?  
-  bool facing; //when true, facing left.  when false, facing right
-  if (enter == true){
+  /* Once the robot is here, we've found the left side block. */
   
-    motor_speed(LEFT_MOTOR, 80);
-    motor_speed(RIGHT_MOTOR, -80);
-    delay(500);
-  
-    while (go_through(side_distance()) != true || front_distance() > 3) {   
-      motor_speed(LEFT_MOTOR, 80);
-      motor_speed(RIGHT_MOTOR, 80);
-    }
-    if(go_through(side_distance()) == true){
-      motor_speed(LEFT_MOTOR, 80);
-      motor_speed(RIGHT_MOTOR, -80);
-      delay(125);
-      motor_speed(LEFT_MOTOR, 100);
-      motor_speed(RIGHT_MOTOR, 100);
-      delay(1000);
-    }
-    if (front_distance() > 3){
-      motor_speed(LEFT_MOTOR, 80);
-      motor_speed(RIGHT_MOTOR, -80);
-      delay(500);
-      while(front_distance() > 3){
-        motor_speed(LEFT_MOTOR, 80);
-        motor_speed(RIGHT_MOTOR, 80);
-        facing = false;
-      }
-    }
-  }
 }
-
