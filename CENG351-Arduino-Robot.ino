@@ -47,8 +47,19 @@ void loop() {
 //  motor_selftest();
 //  reed_selftest();
 //  sonar_selftest();
-//  follow_wall();
-//  follow_line();
+  follow_wall();
+
+  // show off we finished firs two stages
+  on();
+  delay(500);
+  off();
+  delay(500);
+  on();
+  delay(500);
+  off();
+  
+  follow_line();
+  while (true);
 }
 
 
@@ -172,6 +183,8 @@ void follow_line(){
   const int MAX_SPEED = 90;
   const int INCREMENT = 5;
   const int MIN_TURN_SPEED = 50;
+  const int DEG_90_DELAY = 250;
+  const int DEG_180_DELAY = 450;
 
   const size_t avg_size = 3;
   double dists[avg_size];
@@ -215,12 +228,12 @@ void follow_line(){
   /* Turn 90 degrees */
   motor_speed(LEFT_MOTOR, -1*MAX_SPEED);
   motor_speed(RIGHT_MOTOR, MAX_SPEED);
-  delay(250);
+  delay(DEG_90_DELAY);
   motor_speed(LEFT_MOTOR, 0);
   motor_speed(RIGHT_MOTOR, 0);
   delay(1000);
   
-
+  /* Head for the left side, with the magnet! */
   /* Initialize rolling average for front ultrasonic sensor */
   for (size_t j = 0; j < avg_size; j++) {
     dists[j] = front_distance();
@@ -276,18 +289,93 @@ void follow_line(){
   /* We have the magnet now, go until we find the left-turn "T"
      intersection to the garage and follow the line that way */
   if (magnet) {
-  //turn 180 degrees left
-  motor_speed(LEFT_MOTOR, -1*MAX_SPEED);
-  motor_speed(RIGHT_MOTOR, MAX_SPEED);
-  delay(500);
-  motor_speed(LEFT_MOTOR, 0);
-  motor_speed(RIGHT_MOTOR, 0);
-  delay(1000);
-  //line follow til middle intersection
-  //turn left til on new line
-  //follow line
-  //celebrate
-  celebrate();
+    //turn 180 degrees left
+    motor_speed(LEFT_MOTOR, -1*MAX_SPEED);
+    motor_speed(RIGHT_MOTOR, MAX_SPEED);
+    delay(DEG_180_DELAY);
+    motor_speed(LEFT_MOTOR, 0);
+    motor_speed(RIGHT_MOTOR, 0);
+    delay(1000);
+    
+    /* line follow til middle intersection
+       turn left til on new line */
+    left_speed = MAX_SPEED;
+    right_speed = MAX_SPEED;
+    on_track = true;
+    while (on_track) {
+    
+      if (line_check(LEFT_LINESENSOR) == BLACK &&
+          line_check(CENTER_LINESENSOR) == BLACK) {
+        Serial.println("Intersection.");
+        left_speed = 0;
+        right_speed = 0;
+        on_track = false;
+  
+      } else if (line_check(LEFT_LINESENSOR) == BLACK) {
+        Serial.println("steering left");
+        if (left_speed > MIN_TURN_SPEED) left_speed -= INCREMENT;
+      } else if (line_check(RIGHT_LINESENSOR) == BLACK) {
+        Serial.println("steering right");
+        if (right_speed > MIN_TURN_SPEED) right_speed -= INCREMENT;
+      } else if (line_check(CENTER_LINESENSOR) == BLACK) {
+        Serial.println("found middle");
+        left_speed = MAX_SPEED;
+        right_speed = MAX_SPEED;
+      }
+      motor_speed(LEFT_MOTOR, left_speed);
+      motor_speed(RIGHT_MOTOR, right_speed);
+      delay(50);
+    }
+
+    /* Rotate 90 degrees left, into the garage */
+    motor_speed(LEFT_MOTOR, -1*MAX_SPEED);
+    motor_speed(RIGHT_MOTOR, MAX_SPEED);
+    delay(DEG_90_DELAY);
+    motor_speed(LEFT_MOTOR, 0);
+    motor_speed(RIGHT_MOTOR, 0);
+    delay(1000);
+
+    /* Initialize rolling average for front ultrasonic sensor */
+    for (size_t j = 0; j < avg_size; j++) {
+      dists[j] = front_distance();
+      avg_dist = ( j == 0 ? dists[j] : avg_dist + dists[j] );
+    }
+    avg_dist /= (double) avg_size;
+  
+    left_speed = MAX_SPEED;
+    right_speed = MAX_SPEED;
+    on_track = true;
+    while (on_track) {
+      dists[dist_pos] = front_distance();
+      dist_pos = (dist_pos + 1 == avg_size ? 0 : dist_pos + 1);
+      for (size_t j = 0; j < avg_size; j++) {
+        avg_dist = ( j == 0 ? dists[j] : avg_dist + dists[j]);
+      }
+      avg_dist /= avg_size;
+
+      /* check for the back of the garage! */ 
+      if (avg_dist >= 1 && avg_dist <= 9) {
+        Serial.println("END found.");
+        left_speed = 0;
+        right_speed = 0;
+        on_track = false;
+  
+      } else if (line_check(LEFT_LINESENSOR) == BLACK) {
+        Serial.println("steering left");
+        if (left_speed > MIN_TURN_SPEED) left_speed -= INCREMENT;
+      } else if (line_check(RIGHT_LINESENSOR) == BLACK) {
+        Serial.println("steering right");
+        if (right_speed > MIN_TURN_SPEED) right_speed -= INCREMENT;
+      } else if (line_check(CENTER_LINESENSOR) == BLACK) {
+        Serial.println("found middle");
+        left_speed = MAX_SPEED;
+        right_speed = MAX_SPEED;
+      }
+      
+      motor_speed(LEFT_MOTOR, left_speed);
+      motor_speed(RIGHT_MOTOR, right_speed);
+      //delay(50); /* Delay not needed b/c sonar call takes 60ms */
+    }
   }
 
   /* The other side has the magnet, go over there (just like the
@@ -295,17 +383,149 @@ void follow_line(){
      then 180, follow the track until seeing the right-turn "T"
      intersection to the garage, follow the line that way.*/
   else {
-  //180 right
-  motor_speed(LEFT_MOTOR, MAX_SPEED);
-  motor_speed(RIGHT_MOTOR, -1*MAX_SPEED);
-  delay(500);
-  motor_speed(LEFT_MOTOR, 0);
-  motor_speed(RIGHT_MOTOR, 0);
-  delay(1000);
-  //follow line til magnet
-  //go into magnet one
+    /* 180 right, so we don't catch block. */
+    motor_speed(LEFT_MOTOR, MAX_SPEED);
+    motor_speed(RIGHT_MOTOR, -1*MAX_SPEED);
+    delay(DEG_180_DELAY);
+    motor_speed(LEFT_MOTOR, 0);
+    motor_speed(RIGHT_MOTOR, 0);
+    delay(1000);
+
+    /* Go to the other side */
+    for (size_t j = 0; j < avg_size; j++) {
+      dists[j] = front_distance();
+      avg_dist = ( j == 0 ? dists[j] : avg_dist + dists[j] );
+    }
+    avg_dist /= (double) avg_size;
+  
+    left_speed = MAX_SPEED;
+    right_speed = MAX_SPEED;
+    on_track = true;
+    while (on_track) {
+      dists[dist_pos] = front_distance();
+      dist_pos = (dist_pos + 1 == avg_size ? 0 : dist_pos + 1);
+      for (size_t j = 0; j < avg_size; j++) {
+        avg_dist = ( j == 0 ? dists[j] : avg_dist + dists[j]);
+      }
+      avg_dist /= avg_size;
+      
+      if (avg_dist >= 1 && avg_dist <= 7) {
+        Serial.println("Side found.");
+        left_speed = 0;
+        right_speed = 0;
+        on_track = false;
+  
+      } else if (line_check(LEFT_LINESENSOR) == BLACK) {
+        Serial.println("steering left");
+        if (left_speed > MIN_TURN_SPEED) left_speed -= INCREMENT;
+      } else if (line_check(RIGHT_LINESENSOR) == BLACK) {
+        Serial.println("steering right");
+        if (right_speed > MIN_TURN_SPEED) right_speed -= INCREMENT;
+      } else if (line_check(CENTER_LINESENSOR) == BLACK) {
+        Serial.println("found middle");
+        left_speed = MAX_SPEED;
+        right_speed = MAX_SPEED;
+      }
+      
+      motor_speed(LEFT_MOTOR, left_speed);
+      motor_speed(RIGHT_MOTOR, right_speed);
+      //delay(50); /* Delay not needed b/c sonar call takes 60ms */
+    }
+
+    /* Rotate around 180 degrees left, in order to grab that block */
+    motor_speed(LEFT_MOTOR, -1*MAX_SPEED);
+    motor_speed(RIGHT_MOTOR, MAX_SPEED);
+    delay(DEG_180_DELAY);
+    motor_speed(LEFT_MOTOR, 0);
+    motor_speed(RIGHT_MOTOR, 0);
+    delay(1000);
+
+    /* Now follow the line, look for the right-turn into the garage */
+    left_speed = MAX_SPEED;
+    right_speed = MAX_SPEED;
+    on_track = true;
+    while (on_track) {
+    
+      if (line_check(CENTER_LINESENSOR) == BLACK &&
+          line_check(RIGHT_LINESENSOR) == BLACK) {
+        Serial.println("Right turn found.");
+        left_speed = 0;
+        right_speed = 0;
+        on_track = false;
+  
+      } else if (line_check(LEFT_LINESENSOR) == BLACK) {
+        Serial.println("steering left");
+        if (left_speed > MIN_TURN_SPEED) left_speed -= INCREMENT;
+      } else if (line_check(RIGHT_LINESENSOR) == BLACK) {
+        Serial.println("steering right");
+        if (right_speed > MIN_TURN_SPEED) right_speed -= INCREMENT;
+      } else if (line_check(CENTER_LINESENSOR) == BLACK) {
+        Serial.println("found middle");
+        left_speed = MAX_SPEED;
+        right_speed = MAX_SPEED;
+      }
+      motor_speed(LEFT_MOTOR, left_speed);
+      motor_speed(RIGHT_MOTOR, right_speed);
+      delay(50);
+    }
+
+    /* Rotate 90 degrees right, into the garage */
+    motor_speed(LEFT_MOTOR, MAX_SPEED);
+    motor_speed(RIGHT_MOTOR, -1*MAX_SPEED);
+    delay(DEG_90_DELAY);
+    motor_speed(LEFT_MOTOR, 0);
+    motor_speed(RIGHT_MOTOR, 0);
+    delay(1000);
+
+    /* Initialize rolling average for front ultrasonic sensor */
+    /* Roll in to the end of the garage */
+    for (size_t j = 0; j < avg_size; j++) {
+      dists[j] = front_distance();
+      avg_dist = ( j == 0 ? dists[j] : avg_dist + dists[j] );
+    }
+    avg_dist /= (double) avg_size;
+  
+    left_speed = MAX_SPEED;
+    right_speed = MAX_SPEED;
+    on_track = true;
+    while (on_track) {
+      dists[dist_pos] = front_distance();
+      dist_pos = (dist_pos + 1 == avg_size ? 0 : dist_pos + 1);
+      for (size_t j = 0; j < avg_size; j++) {
+        avg_dist = ( j == 0 ? dists[j] : avg_dist + dists[j]);
+      }
+      avg_dist /= avg_size;
+
+      /* check for the back of the garage! */ 
+      if (avg_dist >= 1 && avg_dist <= 9) {
+        Serial.println("END found.");
+        left_speed = 0;
+        right_speed = 0;
+        on_track = false;
+  
+      } else if (line_check(LEFT_LINESENSOR) == BLACK) {
+        Serial.println("steering left");
+        if (left_speed > MIN_TURN_SPEED) left_speed -= INCREMENT;
+      } else if (line_check(RIGHT_LINESENSOR) == BLACK) {
+        Serial.println("steering right");
+        if (right_speed > MIN_TURN_SPEED) right_speed -= INCREMENT;
+      } else if (line_check(CENTER_LINESENSOR) == BLACK) {
+        Serial.println("found middle");
+        left_speed = MAX_SPEED;
+        right_speed = MAX_SPEED;
+      }
+      
+      motor_speed(LEFT_MOTOR, left_speed);
+      motor_speed(RIGHT_MOTOR, right_speed);
+      //delay(50); /* Delay not needed b/c sonar call takes 60ms */
+    }
+
+    
   }
 
-  /* C E L E B R A T E */
-  
+  /* C E L E B R A T E  cause we found the end 
+   * as if that's what's actually happened
+   * by getting to this point
+   */
+  celebrate();
 }
