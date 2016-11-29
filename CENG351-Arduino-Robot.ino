@@ -48,6 +48,7 @@ void loop() {
 //  reed_selftest();
 //  sonar_selftest();
   follow_wall();
+//  follow_line();
 
   // show off we finished firs two stages
   on();
@@ -180,7 +181,7 @@ void follow_wall() {
 
 
 void follow_line(){
-  const int MAX_SPEED = 90;
+  const int MAX_SPEED = 80;
   const int INCREMENT = 5;
   const int MIN_TURN_SPEED = 50;
   const int DEG_90_DELAY = 250;
@@ -204,19 +205,20 @@ void follow_line(){
   
     if (line_check(LEFT_LINESENSOR) == BLACK &&
         line_check(RIGHT_LINESENSOR) == BLACK) {
-      Serial.println("Intersection.");
+      Serial.println("1Intersection.");
       left_speed = 0;
       right_speed = 0;
+      delay(500);
       on_track = false;
 
     } else if (line_check(LEFT_LINESENSOR) == BLACK) {
-      Serial.println("steering left");
+      Serial.println("1steering left");
       if (left_speed > MIN_TURN_SPEED) left_speed -= INCREMENT;
     } else if (line_check(RIGHT_LINESENSOR) == BLACK) {
-      Serial.println("steering right");
+      Serial.println("1steering right");
       if (right_speed > MIN_TURN_SPEED) right_speed -= INCREMENT;
     } else if (line_check(CENTER_LINESENSOR) == BLACK) {
-      Serial.println("found middle");
+      Serial.println("1found middle");
       left_speed = MAX_SPEED;
       right_speed = MAX_SPEED;
     }
@@ -259,13 +261,13 @@ void follow_line(){
       on_track = false;
 
     } else if (line_check(LEFT_LINESENSOR) == BLACK) {
-      Serial.println("steering left");
+      Serial.println("2steering left");
       if (left_speed > MIN_TURN_SPEED) left_speed -= INCREMENT;
     } else if (line_check(RIGHT_LINESENSOR) == BLACK) {
-      Serial.println("steering right");
+      Serial.println("2steering right");
       if (right_speed > MIN_TURN_SPEED) right_speed -= INCREMENT;
     } else if (line_check(CENTER_LINESENSOR) == BLACK) {
-      Serial.println("found middle");
+      Serial.println("2found middle");
       left_speed = MAX_SPEED;
       right_speed = MAX_SPEED;
     }
@@ -306,19 +308,19 @@ void follow_line(){
     
       if (line_check(LEFT_LINESENSOR) == BLACK &&
           line_check(CENTER_LINESENSOR) == BLACK) {
-        Serial.println("Intersection.");
+        Serial.println("3Intersection.");
         left_speed = 0;
         right_speed = 0;
         on_track = false;
   
       } else if (line_check(LEFT_LINESENSOR) == BLACK) {
-        Serial.println("steering left");
+        Serial.println("3steering left");
         if (left_speed > MIN_TURN_SPEED) left_speed -= INCREMENT;
       } else if (line_check(RIGHT_LINESENSOR) == BLACK) {
-        Serial.println("steering right");
+        Serial.println("3steering right");
         if (right_speed > MIN_TURN_SPEED) right_speed -= INCREMENT;
       } else if (line_check(CENTER_LINESENSOR) == BLACK) {
-        Serial.println("found middle");
+        Serial.println("3found middle");
         left_speed = MAX_SPEED;
         right_speed = MAX_SPEED;
       }
