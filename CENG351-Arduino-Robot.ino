@@ -47,7 +47,7 @@ void loop() {
 //  motor_selftest();
 //  reed_selftest();
 //  sonar_selftest();
-  follow_wall();
+//  follow_wall();
 //  follow_line();
 }
 
@@ -272,19 +272,22 @@ void follow_line(){
   /* so, check for the magnet */
   magnet = reed_switch();
 
-  /* Spin a 180! */
+ 
+  /* We have the magnet now, go until we find the left-turn "T"
+     intersection to the garage and follow the line that way */
+  if (magnet) {
+  //turn 180 degrees left
   motor_speed(LEFT_MOTOR, -1*MAX_SPEED);
   motor_speed(RIGHT_MOTOR, MAX_SPEED);
   delay(500);
   motor_speed(LEFT_MOTOR, 0);
   motor_speed(RIGHT_MOTOR, 0);
   delay(1000);
-
- 
-  /* We have the magnet now, go until we find the left-turn "T"
-     intersection to the garage and follow the line that way */
-  if (magnet) {
-
+  //line follow til middle intersection
+  //turn left til on new line
+  //follow line
+  //celebrate
+  celebrate();
   }
 
   /* The other side has the magnet, go over there (just like the
@@ -292,7 +295,15 @@ void follow_line(){
      then 180, follow the track until seeing the right-turn "T"
      intersection to the garage, follow the line that way.*/
   else {
-
+  //180 right
+  motor_speed(LEFT_MOTOR, MAX_SPEED);
+  motor_speed(RIGHT_MOTOR, -1*MAX_SPEED);
+  delay(500);
+  motor_speed(LEFT_MOTOR, 0);
+  motor_speed(RIGHT_MOTOR, 0);
+  delay(1000);
+  //follow line til magnet
+  //go into magnet one
   }
 
   /* C E L E B R A T E */
